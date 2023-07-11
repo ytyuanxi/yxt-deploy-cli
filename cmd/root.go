@@ -6,10 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var DiskPath string
-
 var Version bool
-var All bool
 
 var RootCmd = &cobra.Command{
 	Use:   "deploy-cli",
