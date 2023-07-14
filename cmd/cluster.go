@@ -75,9 +75,9 @@ var initCommand = &cobra.Command{
 			// 拉取镜像
 			err = pullImageOnNode(node, config.Global.ContainerImage)
 			if err != nil {
-				log.Printf("在节点 %s 上拉取镜像 %s 失败: %v", node, imageName, err)
+				log.Printf("在节点 %s 上拉取镜像 %s 失败: %v", node, config.Global.ContainerImage, err)
 			} else {
-				log.Printf("在节点 %s 上成功拉取镜像 %s", node, imageName)
+				log.Printf("在节点 %s 上成功拉取镜像 %s", node, config.Global.ContainerImage)
 			}
 		}
 
