@@ -120,22 +120,26 @@ type DataNode struct {
 	EnableSmuxConnPool bool     `json:"enableSmuxConnPool"`
 }
 
-func ReadConfig() {
+func readConfig() (*Config, error) {
 	// 读取配置文件
 	data, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
 		fmt.Println("无法读取配置文件:", err)
-		return
+		return nil, err
 	}
 
 	// 解析配置文件
-	var config Config
+	config := &Config{}
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		fmt.Println("无法解析配置文件:", err)
-		return
+		return nil, err
 	}
+	return config, nil
 
+}
+
+func tmp() {
 	// 将Master配置写入master.json文件
 
 	master := Master{
@@ -143,7 +147,7 @@ func ReadConfig() {
 		ID:                  "1",
 		Role:                "master",
 		IP:                  "192.168.0.11",
-		Listen:              config.Master.Config.Listen,
+		Listen:              "",
 		Prof:                "17020",
 		Peers:               "1:192.168.0.11:17010,2:192.168.0.12:17010,3:192.168.0.13:17010",
 		RetainLogs:          "20000",
