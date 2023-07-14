@@ -61,7 +61,7 @@ var initCommand = &cobra.Command{
 
 		for _, node := range hosts {
 			// Check if Docker is installed and installed
-			if node == currentNode || node == "" {
+			if node == "" {
 				continue
 			}
 			checkAndInstallDocker("root", node)
