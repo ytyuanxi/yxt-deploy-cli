@@ -130,7 +130,7 @@ func establishSSHConnection(sourceNode, targetNode string) error {
 	return nil
 }
 
-// 检查Docker是否安装
+// 检查Docker是否安装并安装
 func checkAndInstallDocker(node string) error {
 	// 检查Docker是否已安装
 	cmd := exec.Command("ssh", node, "docker --version")
@@ -157,7 +157,7 @@ func checkAndInstallDocker(node string) error {
 
 }
 
-// 检查Docker服务是否启动
+// 检查Docker服务是否启动并启动
 func checkAndStartDockerService(node string) error {
 	// 检查Docker服务状态
 	cmd := exec.Command("ssh", node, "systemctl is-active docker.service")
