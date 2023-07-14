@@ -64,19 +64,14 @@ var initCommand = &cobra.Command{
 			if node == currentNode || node == "" {
 				continue
 			}
-			err = checkAndInstallDocker("root", node)
-			if err != nil {
-				log.Printf("Failed to install Docker on node% s", node)
-			} else {
-				log.Printf("The docker for node %s is ready. ", node)
-			}
+			checkAndInstallDocker("root", node)
 
 			// Check if the Docker service is started and started
 			err = checkAndStartDockerService("root", node)
 			if err != nil {
 				log.Printf("Failed to start Docker service on node% s:% v", node, err)
 			} else {
-				log.Printf("Successfully started Docker service on node% s", node)
+				log.Printf("The docker for node %s is ready", node)
 			}
 
 			// Pull Mirror
@@ -84,7 +79,7 @@ var initCommand = &cobra.Command{
 			if err != nil {
 				log.Printf("Failed to pull mirror% s on node% s:% v", node, config.Global.ContainerImage, err)
 			} else {
-				log.Printf("Successfully pulled mirror% s on node% s", node, config.Global.ContainerImage)
+				log.Printf("Successfully pulled mirror % s on node % s", config.Global.ContainerImage, node)
 			}
 		}
 
@@ -226,12 +221,12 @@ func pullImageOnNode(nodeUser, node, imageName string) error {
 	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker pull "+imageName)
 
 	//Set output to standard output and standard error output
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to pull mirror %s on node %s:%v", node, imageName, err)
+		return fmt.Errorf("failed to pull mirror %s on node %s", imageName, node)
 	}
 
 	return nil
