@@ -25,11 +25,12 @@ var initCommand = &cobra.Command{
 	Short: "init the cluster from config.yaml",
 	Long:  "init the cluster from config.yaml",
 	Run: func(cmd *cobra.Command, args []string) {
-		// 读取配置文件
+		// Read Configuration File
 		config, err := readConfig()
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		hosts := []string{}
 		hosts = append(hosts, config.DeployHostsList.Master.Hosts...)
 		hosts = append(hosts, config.DeployHostsList.MetaNode.Hosts...)
@@ -37,51 +38,57 @@ var initCommand = &cobra.Command{
 			hosts = append(hosts, config.DeployHostsList.DataNode[i].Hosts)
 		}
 
-		// 获取当前主机的IP地址
+		// Obtain the IP address of the current host
 		currentNode, err := getCurrentIP()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println("当前主机的IP地址:", ip)
+		log.Println("The IP address of the current host:", currentNode)
 
-		// 建立当前节点到其他节点的免密连接
+		// Establish a secure connection from the current node to other nodes
 		for _, node := range hosts {
-			err := establishSSHConnection(currentNode, node)
+			if node == currentNode || node == "" {
+				continue
+			}
+			err := establishSSHConnectionWithoutPassword(currentNode, "root", node)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 
-		fmt.Println("免密连接建立完成")
+		log.Println("Password free connection establishment completed")
 
 		for _, node := range hosts {
-			// 检查Docker是否安装并安装
-			err = checkAndInstallDocker(node)
+			// Check if Docker is installed and installed
+			if node == currentNode || node == "" {
+				continue
+			}
+			err = checkAndInstallDocker("root", node)
 			if err != nil {
-				log.Printf("在节点 %s 上安装Docker失败: %v", node, err)
+				log.Printf("Failed to install Docker on node% s", node)
 			} else {
-				log.Printf("在节点 %s 上成功安装Docker", node)
+				log.Printf("The docker for node %s is ready. ", node)
 			}
 
-			// 检查Docker服务是否启动并启动
-			err = checkAndStartDockerService(node)
+			// Check if the Docker service is started and started
+			err = checkAndStartDockerService("root", node)
 			if err != nil {
-				log.Printf("在节点 %s 上启动Docker服务失败: %v", node, err)
+				log.Printf("Failed to start Docker service on node% s:% v", node, err)
 			} else {
-				log.Printf("在节点 %s 上成功启动Docker服务", node)
+				log.Printf("Successfully started Docker service on node% s", node)
 			}
 
-			// 拉取镜像
-			err = pullImageOnNode(node, config.Global.ContainerImage)
+			// Pull Mirror
+			err = pullImageOnNode("root", node, config.Global.ContainerImage)
 			if err != nil {
-				log.Printf("在节点 %s 上拉取镜像 %s 失败: %v", node, config.Global.ContainerImage, err)
+				log.Printf("Failed to pull mirror% s on node% s:% v", node, config.Global.ContainerImage, err)
 			} else {
-				log.Printf("在节点 %s 上成功拉取镜像 %s", node, config.Global.ContainerImage)
+				log.Printf("Successfully pulled mirror% s on node% s", node, config.Global.ContainerImage)
 			}
 		}
 
-		fmt.Println("集群环境初始化完成")
+		log.Println("*******Cluster environment initialization completed******")
 	},
 }
 
@@ -109,48 +116,74 @@ func init() {
 	ClusterCmd.AddCommand(clearCommand)
 }
 
-// 建立免密连接
-func establishSSHConnection(sourceNode, targetNode string) error {
-	// 生成SSH密钥
-	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-N", "", "-f", "id_rsa")
-	cmd.Dir = os.Getenv("HOME")
-	err := cmd.Run()
-	if err != nil {
-		return err
+// 检查是否已存在私钥和公钥文件并生成SSH密钥对
+// Check if the private and public key files already exist and generate an SSH key pair
+func generateSSHKey() error {
+	// Check if the private and public key files already exist
+	privateKeyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
+	//publicKeyPath := privateKeyPath + ".pub"
+	if _, err := os.Stat(privateKeyPath); err == nil {
+		return fmt.Errorf("SSH key already exists")
 	}
 
-	// 将公钥复制到目标节点的authorized_keys文件中
-	cmd = exec.Command("ssh-copy-id", targetNode)
-	cmd.Dir = os.Getenv("HOME")
-	err = cmd.Run()
+	// Generate SSH key pairs
+	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-N", "", "-f", privateKeyPath)
+	err := cmd.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate SSH key: %v", err)
 	}
+
+	log.Printf("SSH key generated successfully.\n")
+
+	return nil
+}
+
+// Establishing a secure connection
+func establishSSHConnectionWithoutPassword(sourceNode, targetNodeUser, targetNode string) error {
+
+	// Check if the private and public key files already exist and generate an SSH key pairs
+	generateSSHKey()
+
+	// Check if it is possible to connect to the target node without a password
+	cmd := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", targetNodeUser+"@"+targetNode, "echo", "connection successful")
+	err := cmd.Run()
+	if err != nil {
+		// Copy public key to remote host
+		privateKeyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
+		publicKeyPath := privateKeyPath + ".pub"
+		cmd = exec.Command("ssh-copy-id", "-i", publicKeyPath, targetNodeUser, "@", targetNode)
+		err = cmd.Run()
+		if err != nil {
+			return fmt.Errorf("failed to establish passwordless SSH connection with %s@%s: %v", targetNodeUser, targetNode, err)
+		}
+	}
+	log.Printf("Passwordless SSH connection is established with %s@%s.\n", targetNodeUser, targetNode)
 
 	return nil
 }
 
 // 检查Docker是否安装并安装
-func checkAndInstallDocker(node string) error {
-	// 检查Docker是否已安装
-	cmd := exec.Command("ssh", node, "docker --version")
+// Check if Docker is installed and installed
+func checkAndInstallDocker(nodeUser, node string) error {
+	// Check if Docker is installed
+	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker --version")
 	output, err := cmd.Output()
 	if err == nil && strings.Contains(string(output), "Docker version") {
-		// Docker已安装
+		//log.Println("Docker installed")
 		return nil
 	}
 
-	// Docker未安装，安装Docker
-	cmd = exec.Command("ssh", node, "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh")
+	// Docker not installed, installing Docker
+	cmd = exec.Command("ssh", nodeUser+"@"+node, "yum", "install", "docker", "-y")
 
-	// 设置输出到标准输出和标准错误输出
+	// Set output to standard output and standard error output
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// 执行命令
+	// Execute Command
 	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("在节点 %s 上安装Docker失败: %v", node, err)
+		return fmt.Errorf("failed to install Docker on node %s", node)
 	}
 
 	return nil
@@ -158,69 +191,77 @@ func checkAndInstallDocker(node string) error {
 }
 
 // 检查Docker服务是否启动并启动
-func checkAndStartDockerService(node string) error {
-	// 检查Docker服务状态
-	cmd := exec.Command("ssh", node, "systemctl is-active docker.service")
+// Check if the Docker service is started and started
+func checkAndStartDockerService(nodeUser, node string) error {
+	// Check Docker Service Status
+	cmd := exec.Command("ssh", nodeUser+"@"+node, "systemctl is-active docker.service")
 	output, err := cmd.Output()
+
 	if err == nil && strings.TrimSpace(string(output)) == "active" {
-		// Docker服务已启动
+		// Docker service started
+		//log.Println("docker already start")
 		return nil
 	}
 
-	// Docker服务未启动，启动Docker服务
-	cmd = exec.Command("ssh", node, "sudo systemctl start docker.service")
+	// Docker service not started, starting Docker service
+	cmd = exec.Command("ssh", nodeUser+"@"+node, "systemctl start docker")
 
-	// 设置输出到标准输出和标准错误输出
+	// Set output to standard output and standard error output
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// 执行命令
 	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("在节点 %s 上启动Docker服务失败: %v", node, err)
+		return fmt.Errorf("failed to start Docker service on node %s", node)
 	}
+	log.Println("docker start")
 
 	return nil
 }
 
 // 从配置文件中拉取镜像
-func pullImageOnNode(node, imageName string) error {
-	// 远程执行拉取镜像的命令
-	cmd := exec.Command("ssh", node, "docker pull "+imageName)
+// Pull image from configuration file
+func pullImageOnNode(nodeUser, node, imageName string) error {
+	// Remote execution of commands to pull images
+	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker pull "+imageName)
 
-	// 设置输出到标准输出和标准错误输出
+	//Set output to standard output and standard error output
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// 执行命令
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("在节点 %s 上拉取镜像 %s 失败: %v", node, imageName, err)
+		return fmt.Errorf("failed to pull mirror %s on node %s:%v", node, imageName, err)
 	}
 
 	return nil
 }
 
 // 获取当前主机的IP地址
+// Obtain the IP address of the current host
 func getCurrentIP() (string, error) {
-	// 获取主机名
+	// Get Host Name
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "", err
 	}
+	//fmt.Println(hostname)
 
-	// 获取主机的IP地址
+	// Obtain the IP address of the host
 	addrs, err := net.LookupIP(hostname)
 	if err != nil {
 		return "", err
 	}
+	//fmt.Println(addrs)
 
-	// 选择IPv4地址
+	// Select IPv4 address
 	for _, addr := range addrs {
 		if ipv4 := addr.To4(); ipv4 != nil {
+			//fmt.Println(ipv4.String())
 			return ipv4.String(), nil
+
 		}
 	}
 
-	return "", fmt.Errorf("未找到IPv4地址")
+	return "", fmt.Errorf("IPv4 address not found")
 }

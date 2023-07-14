@@ -28,22 +28,17 @@ deplopy_hosts_list:
   master:
     hosts:
       - 192.168.128.128
-      - 192.168.128.129
-      - 192.168.128.130
   metanode:
     hosts:
-      - 192.168.128.134
-      - 192.168.128.135
-      - 192.168.128.136
   datanode:
-    - hosts: 192.168.128.131
+    - hosts:
       disk:
         - /data0
-    - hosts: 192.168.128.132
+    - hosts:
       disk:
         - /data0
         - /data1
-    - hosts: 192.168.128.133
+    - hosts:
       disk:
         - /data2
         - /data3
