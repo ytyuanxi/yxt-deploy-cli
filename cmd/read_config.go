@@ -20,6 +20,7 @@ type GlobalConfig struct {
 	SSHPort        int    `yaml:"ssh_port"`
 	ContainerImage string `yaml:"container_image"`
 	DataDir        string `yaml:"data_dir"`
+	BinDir         string `yaml:"bin_dir"`
 	Variable       struct {
 		Target string `yaml:"target"`
 	} `yaml:"variable"`
@@ -28,7 +29,7 @@ type GlobalConfig struct {
 type MasterConfig struct {
 	Config struct {
 		Listen  string `yaml:"listen"`
-		Prof    int    `yaml:"prof"`
+		Prof    string `yaml:"prof"`
 		DataDir string `yaml:"data_dir"`
 	} `yaml:"config"`
 }
@@ -139,17 +140,17 @@ func readConfig() (*Config, error) {
 
 }
 
-func tmp() {
+func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
 	// 将Master配置写入master.json文件
-
+	//Peers:               "1:192.168.0.11:17010,2:192.168.0.12:17010,3:192.168.0.13:17010",
 	master := Master{
-		ClusterName:         "chubaofs01",
-		ID:                  "1",
+		ClusterName:         clusterName,
+		ID:                  id,
 		Role:                "master",
-		IP:                  "192.168.0.11",
-		Listen:              "",
-		Prof:                "17020",
-		Peers:               "1:192.168.0.11:17010,2:192.168.0.12:17010,3:192.168.0.13:17010",
+		IP:                  ip,
+		Listen:              listen,
+		Prof:                prof,
+		Peers:               peers,
 		RetainLogs:          "20000",
 		ConsulAddr:          "http://192.168.0.101:8500",
 		ExporterPort:        9500,
@@ -164,15 +165,17 @@ func tmp() {
 
 	masterData, err := json.MarshalIndent(master, "", "  ")
 	if err != nil {
-		fmt.Println("无法编码Master配置 :", err)
-		return
+		return fmt.Errorf("无法解析master.json %v", err)
 	}
 
 	err = ioutil.WriteFile("master.json", masterData, 0644)
 	if err != nil {
-		fmt.Println("无法写入master.json文件:", err)
-		return
+
+		return fmt.Errorf("无法写入master.json文件 %v", err)
 	}
+	return nil
+}
+func tmp() {
 
 	// 将DataNode配置写入DataNode.json文件
 	datanode := DataNode{

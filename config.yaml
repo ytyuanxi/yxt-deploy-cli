@@ -2,6 +2,7 @@ global:
   ssh_port: 22
   container_image: docker.io/cubefs/cbfs-base:1.0-golang-1.17.13
   data_dir: /data
+  bin_dir: /bin
   variable:
     target: 0.0.1
 
