@@ -63,26 +63,6 @@ type DeployHostsListConfig struct {
 	} `yaml:"datanode"`
 }
 
-type Master struct {
-	ClusterName         string `json:"clusterName"`
-	ID                  string `json:"id"`
-	Role                string `json:"role"`
-	IP                  string `json:"ip"`
-	Listen              string `json:"listen"`
-	Prof                string `json:"prof"`
-	Peers               string `json:"peers"`
-	RetainLogs          string `json:"retainLogs"`
-	ConsulAddr          string `json:"consulAddr"`
-	ExporterPort        int    `json:"exporterPort"`
-	LogLevel            string `json:"logLevel"`
-	LogDir              string `json:"logDir"`
-	WALDir              string `json:"walDir"`
-	StoreDir            string `json:"storeDir"`
-	MetaNodeReservedMem string `json:"metaNodeReservedMem"`
-	EBSAddr             string `json:"ebsAddr"`
-	EBSServicePath      string `json:"ebsServicePath"`
-}
-
 type MetaNode struct {
 	Role              string   `json:"role"`
 	Listen            string   `json:"listen"`
@@ -140,41 +120,6 @@ func readConfig() (*Config, error) {
 
 }
 
-func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
-	// 将Master配置写入master.json文件
-	//Peers:               "1:192.168.0.11:17010,2:192.168.0.12:17010,3:192.168.0.13:17010",
-	master := Master{
-		ClusterName:         clusterName,
-		ID:                  id,
-		Role:                "master",
-		IP:                  ip,
-		Listen:              listen,
-		Prof:                prof,
-		Peers:               peers,
-		RetainLogs:          "20000",
-		ConsulAddr:          "http://192.168.0.101:8500",
-		ExporterPort:        9500,
-		LogLevel:            "debug",
-		LogDir:              "/cfs/log",
-		WALDir:              "/cfs/data/wal",
-		StoreDir:            "/cfs/data/store",
-		MetaNodeReservedMem: "67108864",
-		EBSAddr:             "10.177.40.215:8500",
-		EBSServicePath:      "access",
-	}
-
-	masterData, err := json.MarshalIndent(master, "", "  ")
-	if err != nil {
-		return fmt.Errorf("无法解析master.json %v", err)
-	}
-
-	err = ioutil.WriteFile("master.json", masterData, 0644)
-	if err != nil {
-
-		return fmt.Errorf("无法写入master.json文件 %v", err)
-	}
-	return nil
-}
 func tmp() {
 
 	// 将DataNode配置写入DataNode.json文件

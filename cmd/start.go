@@ -3,22 +3,17 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
-	"os/exec"
 	"strconv"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh"
 )
 
 var ip string
 var allStart bool
 var datanodeDisk string
-
-const ClusterName = "cubeFS"
 
 var StartCmd = &cobra.Command{
 	Use:   "start",
@@ -26,10 +21,17 @@ var StartCmd = &cobra.Command{
 	Long:  `This command will start services.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if allStart {
-			err := startALLMaster()
+			// config, err := readConfig()
+			// if err != nil {
+			// 	log.Println(err)
+			// }
+
+			status, err := checkContainerExistence(RemoteUser, "192.168.128.128", "master1")
+			// status, err := startMasterContainerOnNode("root", "192.168.128.128", "master1", config.Global.DataDir)
 			if err != nil {
 				log.Println(err)
 			}
+			fmt.Println(status)
 
 		} else {
 			fmt.Println(cmd.UsageString())
@@ -44,9 +46,17 @@ var startMasterCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flags().Changed("ip") {
-			fmt.Println("start master in ", ip)
+
+			//如何确定单独启动的master服务的id是多少？
+			//需要修改已经挂载好的master的json配置文件
 		} else {
-			fmt.Println("start all master services from config.yaml")
+
+			//如果已经有docker容器在使用相应的文件，则scp失败
+			//将scp调整到init中
+			err := startAllMaster()
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	},
 }
@@ -92,7 +102,7 @@ func init() {
 	startDatanodeCommand.Flags().StringVarP(&datanodeDisk, "disk", "d", "", "specify the disk where datanode mount")
 }
 
-func startALLMaster() error {
+func startALLMaster2() error {
 	config, err := readConfig()
 	if err != nil {
 		return err
@@ -164,26 +174,15 @@ func startALLMaster() error {
 			return err
 		}
 		//在该节点启动容器
-		err = startMasterContainer("master"+strconv.Itoa(id+1), node)
-		if err != nil {
-			return err
-		}
+		// err = st("master"+strconv.Itoa(id+1), node)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	fmt.Println("start all master services from config.yaml")
 
 	return nil
-}
-
-func checkPortStatus(nodeUser, node string, port string) (string, error) {
-	cmd := exec.Command("ssh", nodeUser+"@"+node, "firewall-cmd --list-all | grep "+port)
-	fmt.Println(cmd)
-	_, err := cmd.Output()
-	if err != nil {
-		return fmt.Sprintf("Port %s %s is closed", node, port), err
-	}
-	//fmt.Println(string(output))
-	return fmt.Sprintf("Port %s is open", port), nil
 }
 
 func scpFile(localPath string, remotePath string, hostname string, port string) error {
@@ -205,56 +204,6 @@ func scpFile(localPath string, remotePath string, hostname string, port string) 
 	}
 
 	_, err = io.Copy(conn, file)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func startMasterContainer(containerName, node string) error {
-	cmd := exec.Command("docker", "start", containerName)
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func openRemotePortFirewall(hostname, username string, privateKeyPath string, port int) error {
-	key, err := ioutil.ReadFile(privateKeyPath)
-	if err != nil {
-		return err
-	}
-
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		return err
-	}
-
-	config := &ssh.ClientConfig{
-		User: username,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", hostname, 22), config)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	session, err := conn.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	// Replace "PORT" with the actual port number you want to open
-	command := fmt.Sprintf("sudo firewall-cmd --zone=public --add-port=%d/tcp --permanent", port)
-	err = session.Run(command)
 	if err != nil {
 		return err
 	}

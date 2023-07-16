@@ -8,6 +8,9 @@ import (
 
 var Version bool
 
+const ClusterName = "cubeFS"
+const RemoteUser = "root"
+
 var RootCmd = &cobra.Command{
 	Use:   "deploy-cli",
 	Short: "CLI for managing CubeFS server and client using Docker",

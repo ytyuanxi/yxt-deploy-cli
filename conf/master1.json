@@ -1,0 +1,19 @@
+{
+  "clusterName": "cubeFS",
+  "id": "1",
+  "role": "master",
+  "ip": "192.168.128.128",
+  "listen": "17010",
+  "prof": "17020",
+  "peers": "1:192.168.128.128:17010",
+  "retainLogs": "20000",
+  "consulAddr": "http://192.168.0.101:8500",
+  "exporterPort": 9500,
+  "logLevel": "debug",
+  "logDir": "/cfs/log",
+  "walDir": "/cfs/data/wal",
+  "storeDir": "/cfs/data/store",
+  "metaNodeReservedMem": "67108864",
+  "ebsAddr": "10.177.40.215:8500",
+  "ebsServicePath": "access"
+}
