@@ -31,15 +31,9 @@ deplopy_hosts_list:
       - 192.168.128.128
   metanode:
     hosts:
+      - 192.168.128.128
   datanode:
-    - hosts:
+    - hosts: 192.168.128.128
       disk:
-        - /data0
-    - hosts:
-      disk:
-        - /data0
-        - /data1
-    - hosts:
-      disk:
-        - /data2
-        - /data3
+        - path: /data/disk0
+          size: 10737418240

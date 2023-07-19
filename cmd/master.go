@@ -42,8 +42,6 @@ func getMasterPeers(config *Config) string {
 }
 
 func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
-	// 将Master配置写入master.json文件
-	//Peers:               "1:192.168.0.11:17010,2:192.168.0.12:17010,3:192.168.0.13:17010",
 	master := Master{
 		ClusterName:         clusterName,
 		ID:                  id,
@@ -80,37 +78,49 @@ func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
 func startAllMaster() error {
 	config, err := readConfig()
 	if err != nil {
+		return err
+	}
+	for id, node := range config.DeployHostsList.Master.Hosts {
+		peers := getMasterPeers(config)
+		err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Master.Config.Listen, config.Master.Config.Prof, peers)
+		if err != nil {
+			return err
+		}
+
+		confFilePath := ConfDir + "/" + "master" + strconv.Itoa(id+1) + ".json"
+		err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+		if err != nil {
+			return err
+		}
+		err = checkAndDeleteContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
+		if err != nil {
+			return err
+		}
+		status, err := startMasterContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1), config.Global.DataDir)
+		if err != nil {
+			return err
+		}
+		log.Println(status)
+	}
+	log.Println("start all master services")
+	return nil
+}
+
+func stopAllMaster() error {
+	config, err := readConfig()
+	if err != nil {
 		log.Println(err)
 	}
 	for id, node := range config.DeployHostsList.Master.Hosts {
 		//读取config，转化为对应的master.json
 		peers := getMasterPeers(config)
 		log.Println(peers)
-		err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Master.Config.Listen, config.Master.Config.Prof, peers)
-		if err != nil {
-			return err
-		}
-		err = transferFileToRemote("conf", config.Global.DataDir, "root", node)
-		if err != nil {
-			return err
-		}
-		err = transferFileToRemote("bin", config.Global.DataDir, "root", node)
-		if err != nil {
-			return err
-		}
-		err = transferFileToRemote("script", config.Global.DataDir, "root", node)
-		if err != nil {
-			return err
-		}
-
-		checkAndDeleteContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
-
-		status, err := startMasterContainerOnNode("root", node, "master"+strconv.Itoa(id+1), config.Global.DataDir)
+		status, err := stopContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
 		log.Println(status)
 	}
-	fmt.Println("start all master services from config.yaml")
+	fmt.Println("stop all master services from config.yaml")
 	return nil
 }

@@ -10,21 +10,20 @@ import (
 
 func stopContainerOnNode(nodeUser, node, containerName string) (string, error) {
 	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker stop ", containerName)
-	output, err := cmd.Output()
+	_, err := cmd.Output()
 	if err != nil {
 		return fmt.Sprintf("failed stop %s on node %s", containerName, node), err
 	}
-	fmt.Println(string(output))
-	return fmt.Sprintf("successful start %s on node %s", containerName, node), nil
+	//fmt.Println(string(output))
+	return fmt.Sprintf("successful stop %s on node %s", containerName, node), nil
 }
 
 func rmContainerOnNode(nodeUser, node, containerName string) (string, error) {
 	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker rm ", containerName)
-	output, err := cmd.Output()
+	_, err := cmd.Output()
 	if err != nil {
 		return fmt.Sprintf("failed stop %s on node %s", containerName, node), err
 	}
-	fmt.Println(string(output))
 	return fmt.Sprintf("successful start %s on node %s", containerName, node), nil
 }
 
@@ -37,16 +36,49 @@ func psContainerOnNode(nodeUser, node string) (string, error) {
 	return string(output), nil
 }
 
+// ok
 func startMasterContainerOnNode(nodeUser, node, containerName, dataDir string) (string, error) {
 	cmd := exec.Command("ssh", nodeUser+"@"+node,
 		"docker run -d --name "+containerName+
-			" -v "+dataDir+"/disk/master1/data:/cfs/data"+
+			" -v "+dataDir+"/disk/"+containerName+"/data:/cfs/data"+
 			" -v "+dataDir+"/bin:/cfs/bin:ro"+
-			" -v "+dataDir+"/disk/master1/log:/cfs/log"+
+			" -v "+dataDir+"/disk/"+containerName+"/log:/cfs/log"+
 			" -v "+dataDir+"/conf/"+containerName+".json:/cfs/conf/master.json"+
 			" -v "+dataDir+"/script/start_master.sh:/cfs/script/start.sh"+
 			" --restart on-failure --privileged     --network  host   docker.io/cubefs/cbfs-base:1.0-golang-1.17.13 /bin/sh /cfs/script/start.sh ")
-	fmt.Println(cmd)
+	_, err := cmd.Output()
+	if err != nil {
+		return fmt.Sprintf("failed start %s on node %s", containerName, node), err
+	}
+	return fmt.Sprintf("successfully started the container %s on node %s", containerName, node), nil
+}
+
+func startMetanodeContainerOnNode(nodeUser, node, containerName, dataDir string) (string, error) {
+	cmd := exec.Command("ssh", nodeUser+"@"+node,
+		"docker run -d --name "+containerName+
+			" -v "+dataDir+"/disk/"+containerName+"/data:/cfs/data"+
+			" -v "+dataDir+"/bin:/cfs/bin:ro"+
+			" -v "+dataDir+"/disk/"+containerName+"/log:/cfs/log"+
+			" -v "+dataDir+"/conf/metanode.json:/cfs/conf/metanode.json"+
+			" -v "+dataDir+"/script/start_meta.sh:/cfs/script/start.sh"+
+			" --restart on-failure --privileged     --network  host   docker.io/cubefs/cbfs-base:1.0-golang-1.17.13 /bin/sh /cfs/script/start.sh ")
+	_, err := cmd.Output()
+	if err != nil {
+		return fmt.Sprintf("failed start %s on node %s", containerName, node), err
+	}
+	return fmt.Sprintf("successfully started the container %s on node %s", containerName, node), nil
+}
+
+func startDatanodeContainerOnNode(nodeUser, node, containerName, dataDir, diskMap string) (string, error) {
+	cmd := exec.Command("ssh", nodeUser+"@"+node,
+		"docker run -d --name "+containerName+
+			" -v "+dataDir+"/disk/"+containerName+"/data:/cfs/data"+
+			" -v "+dataDir+"/bin:/cfs/bin:ro"+
+			" -v "+dataDir+"/disk/"+containerName+"/log:/cfs/log"+
+			" -v "+dataDir+"/conf/datanode.json:/cfs/conf/datanode.json"+diskMap+
+			" -v "+dataDir+"/script/start_datanode.sh:/cfs/script/start.sh"+
+			" --restart on-failure --privileged     --network  host   docker.io/cubefs/cbfs-base:1.0-golang-1.17.13 /bin/sh /cfs/script/start.sh ")
+	//fmt.Println(cmd)
 	_, err := cmd.Output()
 	if err != nil {
 		return fmt.Sprintf("failed start %s on node %s", containerName, node), err
@@ -60,7 +92,7 @@ func checkContainerExistence(nodeUser, node, containerName string) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	fmt.Println(string(output))
+	//fmt.Println(string(output))
 	for _, name := range strings.Fields(string(output)) {
 		if name == containerName {
 			return true, nil
@@ -73,16 +105,14 @@ func checkContainerExistence(nodeUser, node, containerName string) (bool, error)
 
 func checkAndDeleteContainerOnNode(nodeUser, node, containerName string) error {
 	if ok, _ := checkContainerExistence(nodeUser, node, containerName); ok {
-		log.Println(fmt.Sprintf("container %s already exists on node %s", containerName, node))
+		log.Printf("container %s already exists on node %s", containerName, node)
 		_, err := stopContainerOnNode(nodeUser, node, containerName)
-		//log.Println(status)
-		log.Println(fmt.Sprintf("stop container %s on node %s successfully", containerName, node))
+		log.Printf("stop container %s on node %s successfully", containerName, node)
 		if err != nil {
 			return err
 		}
 		_, err = rmContainerOnNode(nodeUser, node, containerName)
-		log.Println(fmt.Sprintf("rm container %s on node %s successfully", containerName, node))
-		//log.Println(status)
+		log.Printf("rm container %s on node %s successfully", containerName, node)
 		if err != nil {
 			return err
 		}

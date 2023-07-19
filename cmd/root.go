@@ -10,6 +10,8 @@ var Version bool
 
 const ClusterName = "cubeFS"
 const RemoteUser = "root"
+const ConfDir = "conf"
+const ScriptDir = "script"
 
 var RootCmd = &cobra.Command{
 	Use:   "deploy-cli",

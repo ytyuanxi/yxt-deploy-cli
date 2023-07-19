@@ -25,7 +25,7 @@ func transferFileToRemote(localFilePath string, remoteFilePath string, remoteUse
 		return fmt.Errorf("file %s transferred to %s@%s:%s failed", localFilePath, remoteUser, remoteHost, remoteFilePath)
 	}
 
-	log.Printf("File '%s' transferred to '%s@%s:%s' successfully.\n", localFilePath, remoteUser, remoteHost, remoteFilePath)
+	log.Printf("file '%s' transferred to '%s@%s:%s' successfully.\n", localFilePath, remoteUser, remoteHost, remoteFilePath)
 
 	return nil
 }

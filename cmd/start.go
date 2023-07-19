@@ -2,11 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"net"
 	"os"
-	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -21,17 +18,20 @@ var StartCmd = &cobra.Command{
 	Long:  `This command will start services.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if allStart {
-			// config, err := readConfig()
-			// if err != nil {
-			// 	log.Println(err)
-			// }
-
-			status, err := checkContainerExistence(RemoteUser, "192.168.128.128", "master1")
-			// status, err := startMasterContainerOnNode("root", "192.168.128.128", "master1", config.Global.DataDir)
+			err := startAllMaster()
 			if err != nil {
 				log.Println(err)
 			}
-			fmt.Println(status)
+
+			err = startAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
+
+			err = startAllDataNode()
+			if err != nil {
+				log.Println(err)
+			}
 
 		} else {
 			fmt.Println(cmd.UsageString())
@@ -45,18 +45,10 @@ var startMasterCommand = &cobra.Command{
 	Short: "start master",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		if cmd.Flags().Changed("ip") {
+		err := startAllMaster()
+		if err != nil {
+			log.Println(err)
 
-			//如何确定单独启动的master服务的id是多少？
-			//需要修改已经挂载好的master的json配置文件
-		} else {
-
-			//如果已经有docker容器在使用相应的文件，则scp失败
-			//将scp调整到init中
-			err := startAllMaster()
-			if err != nil {
-				log.Println(err)
-			}
 		}
 	},
 }
@@ -69,7 +61,10 @@ var startMetanodeCommand = &cobra.Command{
 		if cmd.Flags().Changed("ip") {
 			fmt.Println("start metanode in ", ip)
 		} else {
-			fmt.Println("start all metanode services from config.yaml")
+			err := startAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 	},
@@ -88,7 +83,10 @@ var startDatanodeCommand = &cobra.Command{
 			}
 			fmt.Println("disk:", datanodeDisk)
 		} else {
-			fmt.Println("start all datanode services from config.yaml")
+			err := startAllDataNode()
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	},
 }
@@ -100,113 +98,4 @@ func init() {
 	StartCmd.Flags().BoolVarP(&allStart, "all", "a", false, "start all services")
 	StartCmd.PersistentFlags().StringVarP(&ip, "ip", "", "", "specify an IP address to start services")
 	startDatanodeCommand.Flags().StringVarP(&datanodeDisk, "disk", "d", "", "specify the disk where datanode mount")
-}
-
-func startALLMaster2() error {
-	config, err := readConfig()
-	if err != nil {
-		return err
-	}
-	masterListenPort := config.Master.Config.Listen
-	masterProfPort := config.Master.Config.Prof
-	masterDataDir := config.Master.Config.DataDir
-
-	peers := ""
-	////获取master的peers "1:192.168.0.11:17010,2:192.168.0.12:17010,3:192.168.0.13:17010"
-	for id, node := range config.DeployHostsList.Master.Hosts {
-		if id != len(config.DeployHostsList.Master.Hosts)-1 {
-			peers = peers + strconv.Itoa(id+1) + ":" + node + ":" + config.Master.Config.Listen + ","
-		} else {
-			peers = peers + strconv.Itoa(id+1) + ":" + node + ":" + config.Master.Config.Listen
-		}
-
-	}
-	fmt.Println(peers)
-
-	//对每个节点：scp相应的文件到该节点，在该节点启动相应的容器
-	for id, node := range config.DeployHostsList.Master.Hosts {
-		//检查服务所对应端口的防火墙是否开放
-		listenStatus, err := checkPortStatus("root", node, masterListenPort)
-		log.Println(listenStatus)
-		if err != nil {
-			//开放该端口
-			privateKeyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
-			portNum, _ := strconv.Atoi(masterListenPort)
-			err = openRemotePortFirewall(node, "root", privateKeyPath, portNum)
-			if err != nil {
-				return fmt.Errorf("firewall opened for prot failed")
-			}
-			fmt.Printf("Firewall opened for port %d successfully.\n", portNum)
-		}
-
-		profStatus, err := checkPortStatus("root", node, masterProfPort)
-		fmt.Println(profStatus)
-		if err != nil {
-			//开放该端口
-			privateKeyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
-			portNum, _ := strconv.Atoi(masterListenPort)
-			err = openRemotePortFirewall(node, "root", privateKeyPath, portNum)
-			if err != nil {
-				return fmt.Errorf("firewall opened for prot failed")
-			}
-			fmt.Printf("Firewall opened for port %d successfully.\n", portNum)
-			return err
-		}
-
-		//传输bin文件目标节点
-
-		err = scpFile(config.Global.BinDir, masterDataDir, node, "22")
-		if err != nil {
-			return err
-		}
-		fmt.Println("bin file transferred successfully.")
-
-		//解析yaml文件为master.json文件
-		err = writeMaster(ClusterName, strconv.Itoa(id+1), node, masterListenPort, masterProfPort, peers)
-		if err != nil {
-			return err
-		}
-
-		//并将该文件传输到目标节点
-
-		err = scpFile("master.json", "master.json", node, "22")
-		if err != nil {
-			return err
-		}
-		//在该节点启动容器
-		// err = st("master"+strconv.Itoa(id+1), node)
-		// if err != nil {
-		// 	return err
-		// }
-	}
-
-	fmt.Println("start all master services from config.yaml")
-
-	return nil
-}
-
-func scpFile(localPath string, remotePath string, hostname string, port string) error {
-	file, err := os.Open(localPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", hostname, port))
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	_, err = fmt.Fprintf(conn, "put %s\n", remotePath)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(conn, file)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

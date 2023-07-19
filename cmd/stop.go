@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -30,6 +31,10 @@ var stopMasterCommand = &cobra.Command{
 		if cmd.Flags().Changed("ip") {
 			fmt.Println("ip:", ip)
 		} else {
+			err := stopAllMaster()
+			if err != nil {
+				log.Println(err)
+			}
 			fmt.Println("stop all master services from config.yaml")
 		}
 	},
@@ -43,6 +48,7 @@ var stopMetanodeCommand = &cobra.Command{
 		if cmd.Flags().Changed("ip") {
 			fmt.Println("stop metanode in ", ip)
 		} else {
+			//去目标节点stop该容器
 			fmt.Println("stop all metanode services from config.yaml")
 		}
 	},
