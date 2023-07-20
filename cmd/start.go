@@ -18,6 +18,7 @@ var StartCmd = &cobra.Command{
 	Long:  `This command will start services.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if allStart {
+			fmt.Println("start all services......")
 			err := startAllMaster()
 			if err != nil {
 				log.Println(err)

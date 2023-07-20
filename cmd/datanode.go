@@ -105,3 +105,23 @@ func startAllDataNode() error {
 	log.Println("start all datanode services")
 	return nil
 }
+
+func stopAllDatanode() error {
+	config, err := readConfig()
+	if err != nil {
+		log.Println(err)
+	}
+	for id, node := range config.DeployHostsList.Master.Hosts {
+		status, err := stopContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1))
+		if err != nil {
+			return err
+		}
+		log.Println(status)
+		status, err = rmContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1))
+		if err != nil {
+			return err
+		}
+		log.Println(status)
+	}
+	return nil
+}

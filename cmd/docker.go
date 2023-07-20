@@ -9,22 +9,30 @@ import (
 )
 
 func stopContainerOnNode(nodeUser, node, containerName string) (string, error) {
-	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker stop ", containerName)
-	_, err := cmd.Output()
-	if err != nil {
-		return fmt.Sprintf("failed stop %s on node %s", containerName, node), err
+	if ok, _ := checkContainerExistence(nodeUser, node, containerName); ok {
+		cmd := exec.Command("ssh", nodeUser+"@"+node, "docker stop ", containerName)
+		output, err := cmd.Output()
+		if err != nil {
+			fmt.Println(output)
+			return fmt.Sprintf("failed stop %s on node %s", containerName, node), err
+		}
+		return fmt.Sprintf("successful stop %s on node %s", containerName, node), nil
 	}
-	//fmt.Println(string(output))
-	return fmt.Sprintf("successful stop %s on node %s", containerName, node), nil
+	return fmt.Sprintf("%s on node %s already stopped", containerName, node), nil
+
 }
 
 func rmContainerOnNode(nodeUser, node, containerName string) (string, error) {
-	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker rm ", containerName)
-	_, err := cmd.Output()
-	if err != nil {
-		return fmt.Sprintf("failed stop %s on node %s", containerName, node), err
+	if ok, _ := checkContainerExistence(nodeUser, node, containerName); ok {
+		cmd := exec.Command("ssh", nodeUser+"@"+node, "docker rm ", containerName)
+		_, err := cmd.Output()
+		if err != nil {
+			return fmt.Sprintf("failed rm %s on node %s", containerName, node), err
+		}
+		return fmt.Sprintf("successful rm %s on node %s", containerName, node), nil
 	}
-	return fmt.Sprintf("successful start %s on node %s", containerName, node), nil
+	return fmt.Sprintf("%s on node %s already removed", containerName, node), nil
+
 }
 
 func psContainerOnNode(nodeUser, node string) (string, error) {

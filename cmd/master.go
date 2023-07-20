@@ -117,6 +117,11 @@ func stopAllMaster() error {
 			return err
 		}
 		log.Println(status)
+		status, err = rmContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
+		if err != nil {
+			return err
+		}
+		log.Println(status)
 	}
 	return nil
 }

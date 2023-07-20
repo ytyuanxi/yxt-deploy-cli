@@ -5,6 +5,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -32,7 +34,7 @@ var infoCommand = &cobra.Command{
 	Short: "Display cluster information",
 	Long:  "Display cluster information",
 	Run: func(cmd *cobra.Command, args []string) {
-
+		infoOfCluster()
 	},
 }
 
@@ -78,6 +80,111 @@ func getCurrentIP() (string, error) {
 	}
 
 	return "", fmt.Errorf("IPv4 address not found")
+}
+
+type ServerType string
+
+const (
+	MasterServer   ServerType = "master"
+	MetaNodeServer ServerType = "metanode"
+	DataNodeServer ServerType = "datanode"
+)
+
+type Status string
+
+const (
+	Running Status = "running"
+	Stopped Status = "stopped"
+)
+
+type Service struct {
+	ServerType    ServerType
+	ContainerName string
+	NodeIP        string
+	Status        Status
+}
+
+func printTable(services []Service) {
+	fmt.Println("Server Type  | Container Name | Node IP         | Status")
+	fmt.Println("-----------------------------------------------------")
+	for _, service := range services {
+		fmt.Printf("%-12s | %-14s | %-13s | %s\n", service.ServerType, service.ContainerName, service.NodeIP, service.Status)
+	}
+}
+
+func infoOfCluster() error {
+	//
+	config, err := readConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	servers := []Service{}
+
+	for id, node := range config.DeployHostsList.Master.Hosts {
+		server := Service{}
+		server.NodeIP = node
+		server.ServerType = MasterServer
+		server.Status = Stopped
+		server.ContainerName = "master" + strconv.Itoa(id+1)
+		servers = append(servers, server)
+		ps, err := psContainerOnNode(RemoteUser, node)
+		if err != nil {
+			return err
+		}
+		containerArray := strings.Split(ps, " ")
+		for _, container := range containerArray {
+			if container == "master"+strconv.Itoa(id+1) {
+				server.Status = Running
+				break
+			}
+		}
+
+	}
+
+	for id, node := range config.DeployHostsList.MetaNode.Hosts {
+		server := Service{}
+		server.NodeIP = node
+		server.ServerType = MetaNodeServer
+		server.Status = Stopped
+		server.ContainerName = "metanode" + strconv.Itoa(id+1)
+		servers = append(servers, server)
+		ps, err := psContainerOnNode(RemoteUser, node)
+		if err != nil {
+			return err
+		}
+		containerArray := strings.Split(ps, " ")
+		for _, container := range containerArray {
+			if container == "metanode"+strconv.Itoa(id+1) {
+				server.Status = Running
+				break
+			}
+		}
+
+	}
+
+	for id, node := range config.DeployHostsList.DataNode {
+		server := Service{}
+		server.NodeIP = node.Hosts
+		server.ServerType = DataNodeServer
+		server.Status = Stopped
+		server.ContainerName = "datanode" + strconv.Itoa(id+1)
+		servers = append(servers, server)
+		ps, err := psContainerOnNode(RemoteUser, node.Hosts)
+		if err != nil {
+			return err
+		}
+		containerArray := strings.Split(ps, " ")
+		for _, container := range containerArray {
+			if container == "datanode"+strconv.Itoa(id+1) {
+				server.Status = Running
+				break
+			}
+		}
+
+	}
+	printTable(servers)
+	return nil
 }
 
 func initCluster() {

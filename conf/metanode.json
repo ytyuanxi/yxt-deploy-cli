@@ -1,7 +1,7 @@
 {
   "role": "metanode",
   "listen": "17210",
-  "prof": "17220",
+  "prof": "17020",
   "raftHeartbeatPort": "17230",
   "raftReplicaPort": "17240",
   "consulAddr": "http://192.168.0.101:8500",
@@ -13,8 +13,6 @@
   "metadataDir": "/cfs/data/meta",
   "raftDir": "/cfs/data/raft",
   "masterAddr": [
-    "192.168.0.11:17010",
-    "192.168.0.12:17010",
-    "192.168.0.13:17010"
+    "192.168.128.128"
   ]
 }

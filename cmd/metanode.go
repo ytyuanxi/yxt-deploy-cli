@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -92,15 +91,16 @@ func stopAllMetaNode() error {
 		log.Println(err)
 	}
 	for id, node := range config.DeployHostsList.Master.Hosts {
-		//读取config，转化为对应的master.json
-		peers := getMasterPeers(config)
-		log.Println(peers)
-		status, err := stopContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
+		status, err := stopContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+		if err != nil {
+			return err
+		}
+		log.Println(status)
+		status, err = rmContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
 		log.Println(status)
 	}
-	fmt.Println("stop all master services from config.yaml")
 	return nil
 }

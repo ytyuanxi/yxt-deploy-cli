@@ -17,6 +17,23 @@ var StopCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if allStop {
 			fmt.Println("stop all services......")
+			err := stopAllMaster()
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Println("stop all master services")
+
+			err = stopAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Println("stop all metanode services")
+			err = stopAllDatanode()
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Println("stop all datanode services")
+
 		} else {
 			fmt.Println(cmd.UsageString())
 		}
@@ -48,8 +65,11 @@ var stopMetanodeCommand = &cobra.Command{
 		if cmd.Flags().Changed("ip") {
 			fmt.Println("stop metanode in ", ip)
 		} else {
-			//去目标节点stop该容器
-			fmt.Println("stop all metanode services from config.yaml")
+			err := stopAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Println("stop all metanode services")
 		}
 	},
 }
@@ -67,7 +87,11 @@ var stopDatanodeCommand = &cobra.Command{
 			}
 			fmt.Println("disk:", datanodeDisk)
 		} else {
-			fmt.Println("stop all datanode services from config.yaml")
+			err := stopAllDatanode()
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Println("stop all datanode services")
 		}
 	},
 }
