@@ -54,6 +54,59 @@ func writeMetaNode(listen, prof string, masterAddrs []string) error {
 
 }
 
+func stopMetanodeInSpecificNode(node string) error {
+	config, err := readConfig()
+	if err != nil {
+		return err
+	}
+	for id, n := range config.DeployHostsList.MetaNode.Hosts {
+		if node == n {
+			status, err := stopContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+			status, err = rmContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+		}
+
+	}
+	return nil
+
+}
+
+func startMetanodeInSpecificNode(node string) error {
+	//要对执行ip启动的容器进行编号
+	config, err := readConfig()
+	if err != nil {
+		return err
+	}
+	for id, n := range config.DeployHostsList.MetaNode.Hosts {
+		if n == node {
+			confFilePath := ConfDir + "/" + "metanode.json"
+			err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+			if err != nil {
+				return err
+			}
+
+			err = checkAndDeleteContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+			if err != nil {
+				return err
+			}
+			status, err := startMetanodeContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1), config.Global.DataDir)
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+			break
+		}
+	}
+	return nil
+}
+
 func startAllMetaNode() error {
 	config, err := readConfig()
 	if err != nil {

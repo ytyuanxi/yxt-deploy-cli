@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -63,6 +62,8 @@ var stopMetanodeCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flags().Changed("ip") {
+			stopMetanodeInSpecificNode(ip)
+
 			fmt.Println("stop metanode in ", ip)
 		} else {
 			err := stopAllMetaNode()
@@ -80,12 +81,14 @@ var stopDatanodeCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flags().Changed("ip") {
+			// fmt.Println("stop datanode in ", ip)
+			// if !cmd.Flags().Changed("disk") {
+			// 	fmt.Println("must have disk argument")
+			// 	os.Exit(1)
+			// }
+			// fmt.Println("disk:", datanodeDisk)
+			stopDatanodeInSpecificNode(ip)
 			fmt.Println("stop datanode in ", ip)
-			if !cmd.Flags().Changed("disk") {
-				fmt.Println("must have disk argument")
-				os.Exit(1)
-			}
-			fmt.Println("disk:", datanodeDisk)
 		} else {
 			err := stopAllDatanode()
 			if err != nil {
