@@ -112,9 +112,6 @@ func stopAllMaster() error {
 		log.Println(err)
 	}
 	for id, node := range config.DeployHostsList.Master.Hosts {
-		//读取config，转化为对应的master.json
-		peers := getMasterPeers(config)
-		//log.Println(peers)
 		status, err := stopContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
 		if err != nil {
 			return err
