@@ -35,7 +35,7 @@ var stopMasterCommand = &cobra.Command{
 			if err != nil {
 				log.Println(err)
 			}
-			fmt.Println("stop all master services from config.yaml")
+			fmt.Println("stop all master services")
 		}
 	},
 }
