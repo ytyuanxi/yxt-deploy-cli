@@ -127,18 +127,13 @@ func infoOfCluster() error {
 		server.ServerType = MasterServer
 		server.Status = Stopped
 		server.ContainerName = "master" + strconv.Itoa(id+1)
+
+		ps, _ := containerStatus(RemoteUser, node, "master"+strconv.Itoa(id+1))
+
+		if strings.Contains(ps, "running") {
+			server.Status = Running
+		}
 		servers = append(servers, server)
-		ps, err := psContainerOnNode(RemoteUser, node)
-		if err != nil {
-			return err
-		}
-		containerArray := strings.Split(ps, " ")
-		for _, container := range containerArray {
-			if container == "master"+strconv.Itoa(id+1) {
-				server.Status = Running
-				break
-			}
-		}
 
 	}
 
@@ -148,19 +143,13 @@ func infoOfCluster() error {
 		server.ServerType = MetaNodeServer
 		server.Status = Stopped
 		server.ContainerName = "metanode" + strconv.Itoa(id+1)
-		servers = append(servers, server)
-		ps, err := psContainerOnNode(RemoteUser, node)
-		if err != nil {
-			return err
-		}
-		containerArray := strings.Split(ps, " ")
-		for _, container := range containerArray {
-			if container == "metanode"+strconv.Itoa(id+1) {
-				server.Status = Running
-				break
-			}
-		}
+		//servers = append(servers, server)
+		ps, _ := containerStatus(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
 
+		if strings.Contains(ps, "running") {
+			server.Status = Running
+		}
+		servers = append(servers, server)
 	}
 
 	for id, node := range config.DeployHostsList.DataNode {
@@ -169,20 +158,15 @@ func infoOfCluster() error {
 		server.ServerType = DataNodeServer
 		server.Status = Stopped
 		server.ContainerName = "datanode" + strconv.Itoa(id+1)
-		servers = append(servers, server)
-		ps, err := psContainerOnNode(RemoteUser, node.Hosts)
-		if err != nil {
-			return err
-		}
-		containerArray := strings.Split(ps, " ")
-		for _, container := range containerArray {
-			if container == "datanode"+strconv.Itoa(id+1) {
-				server.Status = Running
-				break
-			}
-		}
 
+		ps, _ := containerStatus(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1))
+
+		if strings.Contains(ps, "running") {
+			server.Status = Running
+		}
+		servers = append(servers, server)
 	}
+
 	printTable(servers)
 	return nil
 }
@@ -210,6 +194,7 @@ func initCluster() {
 
 	// Establish a secure connection from the current node to other nodes
 	for _, node := range hosts {
+		//bug1:node节点没有去重！！！
 		if node == currentNode || node == "" {
 			continue
 		}

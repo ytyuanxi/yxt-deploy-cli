@@ -202,3 +202,16 @@ func pullImageOnNode(nodeUser, node, imageName string) error {
 
 	return nil
 }
+
+func containerStatus(nodeUser, node, containerName string) (string, error) {
+
+	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker inspect --format='{{.State.Status}}' "+containerName)
+	//err := cmd.Run()
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to pull mirror %s on node %s", containerName, node)
+	}
+
+	return string(output), nil
+
+}

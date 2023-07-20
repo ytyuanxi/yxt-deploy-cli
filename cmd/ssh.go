@@ -42,7 +42,7 @@ func establishSSHConnectionWithoutPassword(sourceNode, targetNodeUser, targetNod
 		// Copy public key to remote host
 		privateKeyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
 		publicKeyPath := privateKeyPath + ".pub"
-		cmd = exec.Command("ssh-copy-id", "-i", publicKeyPath, targetNodeUser, "@", targetNode)
+		cmd = exec.Command("ssh-copy-id", "-i", publicKeyPath, targetNodeUser+"@"+targetNode)
 		err = cmd.Run()
 		if err != nil {
 			return fmt.Errorf("failed to establish passwordless SSH connection with %s@%s: %v", targetNodeUser, targetNode, err)
