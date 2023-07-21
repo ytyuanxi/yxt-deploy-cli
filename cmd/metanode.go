@@ -87,7 +87,7 @@ func startMetanodeInSpecificNode(node string) error {
 	for id, n := range config.DeployHostsList.MetaNode.Hosts {
 		if n == node {
 			confFilePath := ConfDir + "/" + "metanode.json"
-			err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+			err = transferDirectoryToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
 			if err != nil {
 				return err
 			}
@@ -107,19 +107,35 @@ func startMetanodeInSpecificNode(node string) error {
 	return nil
 }
 
+func getMasterAddrAndPort() ([]string, error) {
+	config, err := readConfig()
+	if err != nil {
+		return []string{}, err
+	}
+	masterAddr := make([]string, len(config.DeployHostsList.Master.Hosts))
+	for id, node := range config.DeployHostsList.Master.Hosts {
+		masterAddr[id] = node + ":" + config.Master.Config.Listen
+	}
+	return masterAddr, nil
+}
+
 func startAllMetaNode() error {
 	config, err := readConfig()
 	if err != nil {
 		return err
 	}
+	masterAddr, err := getMasterAddrAndPort()
+	if err != nil {
+		return err
+	}
 	for id, node := range config.DeployHostsList.MetaNode.Hosts {
 
-		err := writeMetaNode(config.MetaNode.Config.Listen, config.MetaNode.Config.Prof, config.DeployHostsList.Master.Hosts)
+		err := writeMetaNode(config.MetaNode.Config.Listen, config.MetaNode.Config.Prof, masterAddr)
 		if err != nil {
 			return err
 		}
-		confFilePath := ConfDir
-		err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+		confFilePath := ConfDir + "/" + "metanode.json"
+		err = transferDirectoryToRemote(confFilePath, config.Global.DataDir+"/"+ConfDir, RemoteUser, node)
 		if err != nil {
 			return err
 		}

@@ -70,6 +70,10 @@ func startAllDataNode() error {
 	if err != nil {
 		log.Println(err)
 	}
+	masterAddr, err := getMasterAddrAndPort()
+	if err != nil {
+		return err
+	}
 	for id, node := range config.DeployHostsList.DataNode {
 
 		disksInfo := []string{}
@@ -81,12 +85,12 @@ func startAllDataNode() error {
 			disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
 		}
 
-		err := writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, config.DeployHostsList.Master.Hosts, disksInfo)
+		err := writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, masterAddr, disksInfo)
 		if err != nil {
 			return err
 		}
 		confFilePath := ConfDir + "/" + "datanode.json"
-		err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node.Hosts)
+		err = transferConfigFileToRemote(confFilePath, config.Global.DataDir+"/"+ConfDir, RemoteUser, node.Hosts)
 		if err != nil {
 			return err
 		}
@@ -114,7 +118,7 @@ func startDatanodeInSpecificNode(node string) error {
 	for id, n := range config.DeployHostsList.DataNode {
 		if n.Hosts == node {
 			confFilePath := ConfDir + "/" + "datanode.json"
-			err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+			err = transferDirectoryToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
 			if err != nil {
 				return err
 			}

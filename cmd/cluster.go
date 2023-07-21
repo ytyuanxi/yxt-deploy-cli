@@ -229,11 +229,11 @@ func initCluster() {
 			log.Printf("Successfully pulled mirror % s on node % s", config.Global.ContainerImage, node)
 		}
 
-		err = transferFileToRemote("bin", config.Global.DataDir, "root", node)
+		err = transferDirectoryToRemote("bin", config.Global.DataDir, "root", node)
 		if err != nil {
 			log.Println(err)
 		}
-		err = transferFileToRemote("script", config.Global.DataDir, "root", node)
+		err = transferDirectoryToRemote("script", config.Global.DataDir, "root", node)
 		if err != nil {
 			log.Println(err)
 		}

@@ -1,7 +1,7 @@
 {
   "role": "datanode",
-  "listen": "17210",
-  "prof": "17020",
+  "listen": "17310",
+  "prof": "17320",
   "raftHeartbeat": "17330",
   "raftReplica": "17340",
   "raftDir": "/cfs/log",
@@ -18,7 +18,7 @@
   "diskFlowReadLimit": "1024000000",
   "diskFlowWriteLimit": "524288000",
   "masterAddr": [
-    "192.168.128.128"
+    "192.168.128.128:17010"
   ],
   "enableSmuxConnPool": true
 }

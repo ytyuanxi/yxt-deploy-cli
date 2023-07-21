@@ -88,7 +88,7 @@ func startAllMaster() error {
 		}
 
 		confFilePath := ConfDir + "/" + "master" + strconv.Itoa(id+1) + ".json"
-		err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+		err = transferDirectoryToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
 		if err != nil {
 			return err
 		}
