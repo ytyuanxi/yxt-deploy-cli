@@ -81,7 +81,7 @@ func startAllDataNode() error {
 			disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
 		}
 
-		err := writeDataNode(config.MetaNode.Config.Listen, config.Master.Config.Prof, config.DeployHostsList.Master.Hosts, disksInfo)
+		err := writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, config.DeployHostsList.Master.Hosts, disksInfo)
 		if err != nil {
 			return err
 		}

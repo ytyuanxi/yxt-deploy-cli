@@ -114,11 +114,11 @@ func startAllMetaNode() error {
 	}
 	for id, node := range config.DeployHostsList.MetaNode.Hosts {
 
-		err := writeMetaNode(config.MetaNode.Config.Listen, config.Master.Config.Prof, config.DeployHostsList.Master.Hosts)
+		err := writeMetaNode(config.MetaNode.Config.Listen, config.MetaNode.Config.Prof, config.DeployHostsList.Master.Hosts)
 		if err != nil {
 			return err
 		}
-		confFilePath := ConfDir + "/" + "metanode.json"
+		confFilePath := ConfDir
 		err = transferFileToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
 		if err != nil {
 			return err
