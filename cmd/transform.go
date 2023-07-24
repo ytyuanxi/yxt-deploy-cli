@@ -17,8 +17,8 @@ func transferConfigFileToRemote(localFilePath string, remoteFilePath string, rem
 	//递归的传输整个目录
 	cmd := exec.Command("scp", localFilePath, remoteUser+"@"+remoteHost+":"+remoteFilePath)
 	//output, err := cmd.Output()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 	// Execute Command
 	err = cmd.Run()
 	if err != nil {
@@ -39,10 +39,11 @@ func transferDirectoryToRemote(localFilePath string, remoteFilePath string, remo
 	defer localFile.Close()
 	//递归的传输整个目录
 	cmd := exec.Command("scp", "-r", localFilePath, remoteUser+"@"+remoteHost+":"+remoteFilePath)
-	//output, err := cmd.Output()
+	//output, _ := cmd.Output()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	// Execute Command
+	//fmt.Println(output)
+	//Execute Command
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("file %s transferred to %s@%s:%s failed", localFilePath, remoteUser, remoteHost, remoteFilePath)

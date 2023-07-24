@@ -171,6 +171,20 @@ func infoOfCluster() error {
 	return nil
 }
 
+func removeDuplicates(slice []string) []string {
+	encountered := map[string]bool{}
+	result := []string{}
+
+	for _, item := range slice {
+		if encountered[item] == true {
+			continue
+		}
+		encountered[item] = true
+		result = append(result, item)
+	}
+
+	return result
+}
 func initCluster() {
 	config, err := readConfig()
 	if err != nil {
@@ -184,6 +198,9 @@ func initCluster() {
 		hosts = append(hosts, config.DeployHostsList.DataNode[i].Hosts)
 	}
 
+	newHosts := removeDuplicates(hosts)
+	//fmt.Println(newHosts)
+
 	// Obtain the IP address of the current host
 	currentNode, err := getCurrentIP()
 	if err != nil {
@@ -193,12 +210,12 @@ func initCluster() {
 	log.Println("The IP address of the current host:", currentNode)
 
 	// Establish a secure connection from the current node to other nodes
-	for _, node := range hosts {
+	for _, node := range newHosts {
 		//bug1:node节点没有去重！！！
 		if node == currentNode || node == "" {
 			continue
 		}
-		err := establishSSHConnectionWithoutPassword(currentNode, "root", node)
+		err := establishSSHConnectionWithoutPassword(currentNode, RemoteUser, node)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -206,15 +223,15 @@ func initCluster() {
 
 	log.Println("Password free connection establishment completed")
 
-	for _, node := range hosts {
+	for _, node := range newHosts {
 		// Check if Docker is installed and installed
 		if node == "" {
 			continue
 		}
-		checkAndInstallDocker("root", node)
+		checkAndInstallDocker(RemoteUser, node)
 
 		// Check if the Docker service is started and started
-		err = checkAndStartDockerService("root", node)
+		err = checkAndStartDockerService(RemoteUser, node)
 		if err != nil {
 			log.Printf("Failed to start Docker service on node% s:% v", node, err)
 		} else {
@@ -222,18 +239,18 @@ func initCluster() {
 		}
 
 		// Pull Mirror
-		err = pullImageOnNode("root", node, config.Global.ContainerImage)
+		err = pullImageOnNode(RemoteUser, node, config.Global.ContainerImage)
 		if err != nil {
 			log.Printf("Failed to pull mirror% s on node% s:% v", node, config.Global.ContainerImage, err)
 		} else {
 			log.Printf("Successfully pulled mirror % s on node % s", config.Global.ContainerImage, node)
 		}
 
-		err = transferDirectoryToRemote("bin", config.Global.DataDir, "root", node)
+		err = transferDirectoryToRemote("bin", config.Global.DataDir, RemoteUser, node)
 		if err != nil {
 			log.Println(err)
 		}
-		err = transferDirectoryToRemote("script", config.Global.DataDir, "root", node)
+		err = transferDirectoryToRemote("script", config.Global.DataDir, RemoteUser, node)
 		if err != nil {
 			log.Println(err)
 		}
