@@ -53,7 +53,6 @@ func init() {
 	ClusterCmd.AddCommand(clearCommand)
 }
 
-// 获取当前主机的IP地址
 // Obtain the IP address of the current host
 func getCurrentIP() (string, error) {
 	// Get Host Name
@@ -62,7 +61,6 @@ func getCurrentIP() (string, error) {
 		return "", err
 	}
 	//fmt.Println(hostname)
-
 	// Obtain the IP address of the host
 	addrs, err := net.LookupIP(hostname)
 	if err != nil {
@@ -90,11 +88,19 @@ const (
 	DataNodeServer ServerType = "datanode"
 )
 
+const (
+	MasterName   = "master"
+	MetaNodeName = "metanode"
+	DataNodeName = "datanode"
+)
+
 type Status string
 
 const (
 	Running Status = "running"
 	Stopped Status = "stopped"
+	Created Status = "created"
+	Paused  Status = "paused"
 )
 
 type Service struct {
@@ -104,6 +110,10 @@ type Service struct {
 	Status        Status
 }
 
+// printTable prints a table of services.
+//
+// It takes in a slice of Service structs as a parameter.
+// It does not return anything.
 func printTable(services []Service) {
 	fmt.Println("Server Type  | Container Name | Node IP         | Status")
 	fmt.Println("-----------------------------------------------------")
@@ -112,13 +122,19 @@ func printTable(services []Service) {
 	}
 }
 
+// infoOfCluster retrieves information about the cluster.
+//
+// It reads the configuration, initializes a list of servers, and populates it with details about the master, metanode, and datanode servers.
+// The function then checks the status of each server by running the `containerStatus` function and updates the `Status` field accordingly.
+// Finally, it prints the table of server information and returns nil.
+//
+// Returns:
+// - error: An error if there was an issue reading the configuration.
 func infoOfCluster() error {
-	//
 	config, err := readConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	servers := []Service{}
 
 	for id, node := range config.DeployHostsList.Master.Hosts {
@@ -126,9 +142,9 @@ func infoOfCluster() error {
 		server.NodeIP = node
 		server.ServerType = MasterServer
 		server.Status = Stopped
-		server.ContainerName = "master" + strconv.Itoa(id+1)
+		server.ContainerName = MasterName + strconv.Itoa(id+1)
 
-		ps, _ := containerStatus(RemoteUser, node, "master"+strconv.Itoa(id+1))
+		ps, _ := containerStatus(RemoteUser, node, MasterName+strconv.Itoa(id+1))
 
 		if strings.Contains(ps, "running") {
 			server.Status = Running
@@ -142,9 +158,9 @@ func infoOfCluster() error {
 		server.NodeIP = node
 		server.ServerType = MetaNodeServer
 		server.Status = Stopped
-		server.ContainerName = "metanode" + strconv.Itoa(id+1)
+		server.ContainerName = MetaNodeName + strconv.Itoa(id+1)
 		//servers = append(servers, server)
-		ps, _ := containerStatus(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+		ps, _ := containerStatus(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 
 		if strings.Contains(ps, "running") {
 			server.Status = Running
@@ -157,9 +173,9 @@ func infoOfCluster() error {
 		server.NodeIP = node.Hosts
 		server.ServerType = DataNodeServer
 		server.Status = Stopped
-		server.ContainerName = "datanode" + strconv.Itoa(id+1)
+		server.ContainerName = DataNodeName + strconv.Itoa(id+1)
 
-		ps, _ := containerStatus(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1))
+		ps, _ := containerStatus(RemoteUser, node.Hosts, DataNodeName+strconv.Itoa(id+1))
 
 		if strings.Contains(ps, "running") {
 			server.Status = Running
