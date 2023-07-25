@@ -8,12 +8,19 @@ import (
 	"strings"
 )
 
+// stopContainerOnNode stops a Docker container on a specific node.
+//
+// It takes in the following parameters:
+// - nodeUser: the username of the node
+// - node: the IP address or hostname of the node
+// - containerName: the name of the container to stop
+//
+// It returns a string indicating the result of the operation and an error.
 func stopContainerOnNode(nodeUser, node, containerName string) (string, error) {
 	if ok, _ := checkContainerExistence(nodeUser, node, containerName); ok {
 		cmd := exec.Command("ssh", nodeUser+"@"+node, "docker stop ", containerName)
-		output, err := cmd.Output()
+		_, err := cmd.Output()
 		if err != nil {
-			fmt.Println(output)
 			return fmt.Sprintf("failed stop %s on node %s", containerName, node), err
 		}
 		return fmt.Sprintf("successful stop %s on node %s", containerName, node), nil
@@ -22,6 +29,15 @@ func stopContainerOnNode(nodeUser, node, containerName string) (string, error) {
 
 }
 
+// rmContainerOnNode removes a container from a given node.
+//
+// It takes the following parameters:
+// - nodeUser (string): the username used to connect to the node.
+// - node (string): the IP address or hostname of the node.
+// - containerName (string): the name of the container to be removed.
+//
+// It returns a string and an error. The string indicates the result of the removal
+// operation, and the error is non-nil if there was an error during the removal process.
 func rmContainerOnNode(nodeUser, node, containerName string) (string, error) {
 	if ok, _ := checkContainerExistence(nodeUser, node, containerName); ok {
 		cmd := exec.Command("ssh", nodeUser+"@"+node, "docker rm ", containerName)
@@ -35,16 +51,6 @@ func rmContainerOnNode(nodeUser, node, containerName string) (string, error) {
 
 }
 
-func psContainerOnNode(nodeUser, node string) (string, error) {
-	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker ps ")
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Sprintf("failed ps on node %s", node), err
-	}
-	return string(output), nil
-}
-
-// ok
 func startMasterContainerOnNode(nodeUser, node, containerName, dataDir string) (string, error) {
 	cmd := exec.Command("ssh", nodeUser+"@"+node,
 		"docker run -d --name "+containerName+
@@ -111,6 +117,16 @@ func checkContainerExistence(nodeUser, node, containerName string) (bool, error)
 
 }
 
+// checkContainerExistence checks if a container with the given name exists on a specific node.
+//
+// Parameters:
+// - nodeUser: the SSH username for the node.
+// - node: the IP address or hostname of the node.
+// - containerName: the name of the container to check for existence.
+//
+// Returns:
+// - bool: true if the container exists, false otherwise.
+// - error: an error if there was a problem executing the SSH command.
 func checkAndDeleteContainerOnNode(nodeUser, node, containerName string) error {
 	if ok, _ := checkContainerExistence(nodeUser, node, containerName); ok {
 		log.Printf("container %s already exists on node %s", containerName, node)
@@ -156,7 +172,6 @@ func checkAndInstallDocker(nodeUser, node string) error {
 
 }
 
-// 检查Docker服务是否启动并启动
 // Check if the Docker service is started and started
 func checkAndStartDockerService(nodeUser, node string) error {
 	// Check Docker Service Status
@@ -185,7 +200,6 @@ func checkAndStartDockerService(nodeUser, node string) error {
 	return nil
 }
 
-// 从配置文件中拉取镜像
 // Pull image from configuration file
 func pullImageOnNode(nodeUser, node, imageName string) error {
 	// Remote execution of commands to pull images

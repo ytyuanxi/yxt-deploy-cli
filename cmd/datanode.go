@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -54,12 +53,13 @@ func writeDataNode(listen, prof string, masterAddrs, disks []string) error {
 
 	dataNodeData, err := json.MarshalIndent(datanode, "", "  ")
 	if err != nil {
-		fmt.Println("无法编码DataNode配置:", err)
+		log.Println("Unable to encode DataNode configuration:", err)
 		return err
 	}
-	err = ioutil.WriteFile("conf/datanode.json", dataNodeData, 0644)
+
+	err = ioutil.WriteFile(ConfDir+"/datanode.json", dataNodeData, 0644)
 	if err != nil {
-		fmt.Println("无法写入DataNode.json文件:", err)
+		log.Println("Unable to write to DataNode.json file:", err)
 		return err
 	}
 	return nil
@@ -77,8 +77,6 @@ func startAllDataNode() error {
 	for id, node := range config.DeployHostsList.DataNode {
 
 		disksInfo := []string{}
-		//从config中获取disk，
-		// []string{"/cfs/disk:10737418240"}
 		diskMap := ""
 		for _, info := range node.Disk {
 			diskMap += " -v " + info.Path + ":/cfs" + info.Path
@@ -94,7 +92,6 @@ func startAllDataNode() error {
 		if err != nil {
 			return err
 		}
-		//挂载时建立两者的真实连接,这里传入的应该是一个字符串，这个字符串是-v
 
 		err = checkAndDeleteContainerOnNode(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1))
 		if err != nil {
@@ -110,7 +107,7 @@ func startAllDataNode() error {
 	return nil
 }
 func startDatanodeInSpecificNode(node string) error {
-	//要对执行ip启动的容器进行编号
+
 	config, err := readConfig()
 	if err != nil {
 		return err
@@ -123,7 +120,7 @@ func startDatanodeInSpecificNode(node string) error {
 				return err
 			}
 
-			err = checkAndDeleteContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1))
+			err = checkAndDeleteContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
 			if err != nil {
 				return err
 			}
@@ -132,7 +129,7 @@ func startDatanodeInSpecificNode(node string) error {
 				diskMap += " -v " + info.Path + ":/cfs" + info.Path
 
 			}
-			status, err := startDatanodeContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1), config.Global.DataDir, diskMap)
+			status, err := startDatanodeContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1), config.Global.DataDir, diskMap)
 			if err != nil {
 				return err
 			}
@@ -145,19 +142,18 @@ func startDatanodeInSpecificNode(node string) error {
 }
 
 func stopDatanodeInSpecificNode(node string) error {
-	//要对执行ip启动的容器进行编号
 	config, err := readConfig()
 	if err != nil {
 		return err
 	}
 	for id, n := range config.DeployHostsList.DataNode {
 		if n.Hosts == node {
-			status, err := stopContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1))
+			status, err := stopContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
 			if err != nil {
 				return err
 			}
 			log.Println(status)
-			status, err = rmContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1))
+			status, err = rmContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
 			if err != nil {
 				return err
 			}
@@ -173,12 +169,12 @@ func stopAllDatanode() error {
 		log.Println(err)
 	}
 	for id, node := range config.DeployHostsList.Master.Hosts {
-		status, err := stopContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1))
+		status, err := stopContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
 		log.Println(status)
-		status, err = rmContainerOnNode(RemoteUser, node, "datanode"+strconv.Itoa(id+1))
+		status, err = rmContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}

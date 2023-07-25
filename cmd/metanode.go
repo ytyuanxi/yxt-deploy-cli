@@ -61,12 +61,12 @@ func stopMetanodeInSpecificNode(node string) error {
 	}
 	for id, n := range config.DeployHostsList.MetaNode.Hosts {
 		if node == n {
-			status, err := stopContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+			status, err := stopContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 			if err != nil {
 				return err
 			}
 			log.Println(status)
-			status, err = rmContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+			status, err = rmContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 			if err != nil {
 				return err
 			}
@@ -92,11 +92,11 @@ func startMetanodeInSpecificNode(node string) error {
 				return err
 			}
 
-			err = checkAndDeleteContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+			err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 			if err != nil {
 				return err
 			}
-			status, err := startMetanodeContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1), config.Global.DataDir)
+			status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), config.Global.DataDir)
 			if err != nil {
 				return err
 			}
@@ -140,11 +140,11 @@ func startAllMetaNode() error {
 			return err
 		}
 
-		err = checkAndDeleteContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+		err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
-		status, err := startMetanodeContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1), config.Global.DataDir)
+		status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), config.Global.DataDir)
 		if err != nil {
 			return err
 		}
@@ -160,12 +160,12 @@ func stopAllMetaNode() error {
 		log.Println(err)
 	}
 	for id, node := range config.DeployHostsList.Master.Hosts {
-		status, err := stopContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+		status, err := stopContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
 		log.Println(status)
-		status, err = rmContainerOnNode(RemoteUser, node, "metanode"+strconv.Itoa(id+1))
+		status, err = rmContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}

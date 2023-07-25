@@ -64,13 +64,13 @@ func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
 
 	masterData, err := json.MarshalIndent(master, "", "  ")
 	if err != nil {
-		return fmt.Errorf("无法解析master.json %v", err)
+		return fmt.Errorf("cannot be resolved to master.json %v", err)
 	}
-	fileName := "conf/master" + id + ".json"
+	fileName := ConfDir + "/master" + id + ".json"
 	err = ioutil.WriteFile(fileName, masterData, 0644)
 	if err != nil {
 
-		return fmt.Errorf("无法写入%s文件 %v", fileName, err)
+		return fmt.Errorf("unable to write %s  %v", fileName, err)
 	}
 	return nil
 }
@@ -92,11 +92,11 @@ func startAllMaster() error {
 		if err != nil {
 			return err
 		}
-		err = checkAndDeleteContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
+		err = checkAndDeleteContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
-		status, err := startMasterContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1), config.Global.DataDir)
+		status, err := startMasterContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1), config.Global.DataDir)
 		if err != nil {
 			return err
 		}
@@ -112,12 +112,12 @@ func stopAllMaster() error {
 		log.Println(err)
 	}
 	for id, node := range config.DeployHostsList.Master.Hosts {
-		status, err := stopContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
+		status, err := stopContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
 		log.Println(status)
-		status, err = rmContainerOnNode(RemoteUser, node, "master"+strconv.Itoa(id+1))
+		status, err = rmContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}

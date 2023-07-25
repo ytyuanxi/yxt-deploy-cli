@@ -80,36 +80,6 @@ func getCurrentIP() (string, error) {
 	return "", fmt.Errorf("IPv4 address not found")
 }
 
-type ServerType string
-
-const (
-	MasterServer   ServerType = "master"
-	MetaNodeServer ServerType = "metanode"
-	DataNodeServer ServerType = "datanode"
-)
-
-const (
-	MasterName   = "master"
-	MetaNodeName = "metanode"
-	DataNodeName = "datanode"
-)
-
-type Status string
-
-const (
-	Running Status = "running"
-	Stopped Status = "stopped"
-	Created Status = "created"
-	Paused  Status = "paused"
-)
-
-type Service struct {
-	ServerType    ServerType
-	ContainerName string
-	NodeIP        string
-	Status        Status
-}
-
 // printTable prints a table of services.
 //
 // It takes in a slice of Service structs as a parameter.
@@ -262,11 +232,11 @@ func initCluster() {
 			log.Printf("Successfully pulled mirror % s on node % s", config.Global.ContainerImage, node)
 		}
 
-		err = transferDirectoryToRemote("bin", config.Global.DataDir, RemoteUser, node)
+		err = transferDirectoryToRemote(BinDir, config.Global.DataDir, RemoteUser, node)
 		if err != nil {
 			log.Println(err)
 		}
-		err = transferDirectoryToRemote("script", config.Global.DataDir, RemoteUser, node)
+		err = transferDirectoryToRemote(ScriptDir, config.Global.DataDir, RemoteUser, node)
 		if err != nil {
 			log.Println(err)
 		}

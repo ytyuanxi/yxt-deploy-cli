@@ -39,7 +39,6 @@ func openRemotePortFirewall(hostname, username string, privateKeyPath string, po
 	}
 	defer session.Close()
 
-	// Replace "PORT" with the actual port number you want to open
 	command := fmt.Sprintf("sudo firewall-cmd --zone=public --add-port=%d/tcp --permanent", port)
 	err = session.Run(command)
 	if err != nil {

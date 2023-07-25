@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
+	"log"
 
 	"gopkg.in/yaml.v2"
 )
@@ -68,26 +68,19 @@ type DiskInfo struct {
 }
 
 func readConfig() (*Config, error) {
-	// 读取配置文件
+
 	data, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
-		fmt.Println("无法读取配置文件:", err)
+		log.Println("Unable to read configuration file:", err)
 		return nil, err
 	}
 
-	// 解析配置文件
 	config := &Config{}
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		fmt.Println("无法解析配置文件:", err)
+		log.Println("Unable to parse configuration file:", err)
 		return nil, err
 	}
 	return config, nil
-
-}
-
-func tmp() {
-
-	// 将MetaNode配置写入metanode.json文件
 
 }
