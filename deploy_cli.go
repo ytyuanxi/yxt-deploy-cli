@@ -2,7 +2,7 @@ package main
 
 import (
 	"deploy_cli/cmd"
-	"fmt"
+	"log"
 )
 
 func init() {
@@ -17,7 +17,7 @@ func init() {
 func main() {
 	err := cmd.RootCmd.Execute()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		//os.Exit(1)
 	}
 }
