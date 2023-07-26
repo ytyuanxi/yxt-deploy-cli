@@ -51,7 +51,7 @@ var RootCmd = &cobra.Command{
 	Long:  `cubefs is a CLI application for managing CubeFS, an open-source distributed file system, using Docker containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if Version {
-			fmt.Printf("deploy-cli version 0.0.1      cubefs version %s /n", BinVersion)
+			fmt.Printf("deploy-cli version 0.0.1      cubefs version %s \n", BinVersion)
 		} else {
 			fmt.Println(cmd.UsageString())
 		}
