@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os/exec"
 
 	"golang.org/x/crypto/ssh"
@@ -46,6 +47,28 @@ func openRemotePortFirewall(hostname, username string, privateKeyPath string, po
 	}
 
 	return nil
+}
+
+//systemctl status firewalld
+//firewall-cmd --reload
+// firewall-cmd --list-ports
+
+func reloadFirewall() {
+
+	cmd := exec.Command("firewall-cmd", "--reload")
+	cmd.Run()
+}
+
+func stopFirewall(nodeUser, node string) {
+
+	cmd := exec.Command("ssh", nodeUser+"@"+node, "systemctl", "stop firewalld")
+	err := cmd.Run()
+	if err != nil {
+		log.Println(err)
+	}
+	//log.Println(output)
+	log.Println(cmd)
+
 }
 
 func checkPortStatus(nodeUser, node string, port string) (string, error) {

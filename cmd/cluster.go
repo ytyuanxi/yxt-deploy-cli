@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -197,7 +198,6 @@ func initCluster() {
 
 	// Establish a secure connection from the current node to other nodes
 	for _, node := range newHosts {
-		//bug1:node节点没有去重！！！
 		if node == currentNode || node == "" {
 			continue
 		}
@@ -240,7 +240,34 @@ func initCluster() {
 		if err != nil {
 			log.Println(err)
 		}
+		//check fuse
+		//checkAndInstallFuse()
+
+		//check firewall
+		stopFirewall(RemoteUser, node)
+
 	}
 
 	log.Println("*******Cluster environment initialization completed******")
+}
+
+func checkAndInstallFuse() {
+	//rpm -q fuse
+	cmd := exec.Command("rpm", "-q", "fuse")
+	err := cmd.Run()
+
+	if err != nil {
+		installCmd := exec.Command("/usr/bin/yum", "install", "-y", "fuse")
+		err := installCmd.Run()
+		if err != nil {
+			log.Println(installCmd)
+			log.Fatal("Failed to install fuse:", err)
+
+		}
+		log.Println("Fuse is installed")
+
+	} else {
+		log.Println("Fuse is already installed")
+
+	}
 }

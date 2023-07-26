@@ -40,8 +40,8 @@ func transferDirectoryToRemote(localFilePath string, remoteFilePath string, remo
 	//递归的传输整个目录
 	cmd := exec.Command("scp", "-r", localFilePath, remoteUser+"@"+remoteHost+":"+remoteFilePath)
 	//output, _ := cmd.Output()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 	//fmt.Println(output)
 	//Execute Command
 	err = cmd.Run()
