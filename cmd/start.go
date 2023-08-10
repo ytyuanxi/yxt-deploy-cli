@@ -58,8 +58,10 @@ var startMetanodeCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flags().Changed("ip") {
-			startMetanodeInSpecificNode(ip)
-
+			err := startMetanodeInSpecificNode(ip)
+			if err != nil {
+				log.Println(err)
+			}
 		} else {
 			err := startAllMetaNode()
 			if err != nil {

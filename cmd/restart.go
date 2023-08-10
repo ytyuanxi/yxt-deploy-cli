@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -16,6 +16,32 @@ var RestartCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if allRestart {
 			fmt.Println("restart all services......")
+			err := stopAllMaster()
+			if err != nil {
+				log.Println(err)
+			}
+			err = startAllMaster()
+			if err != nil {
+				log.Println(err)
+			}
+			err = startAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
+			err = stopAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
+
+			err = startAllDataNode()
+			if err != nil {
+				log.Println(err)
+			}
+			err = stopAllDataNode()
+			if err != nil {
+				log.Println(err)
+			}
+
 		} else {
 			fmt.Println(cmd.UsageString())
 		}
@@ -27,11 +53,16 @@ var restartMasterCommand = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		if cmd.Flags().Changed("ip") {
-			fmt.Println("ip:", ip)
-		} else {
-			fmt.Println("restart all master services from config.yaml")
+
+		err := stopAllMaster()
+		if err != nil {
+			log.Println(err)
 		}
+		err = startAllMaster()
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println("restart all master")
 	},
 }
 
@@ -41,11 +72,26 @@ var restartMetanodeCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flags().Changed("ip") {
-			fmt.Println("ip:", ip)
+			err := stopMetanodeInSpecificNode(ip)
+			if err != nil {
+				log.Println(err)
+			}
+			err = startMetanodeInSpecificNode(ip)
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println("restart metanode in ", ip)
 		} else {
-			fmt.Println("restart all metanode services from config.yaml")
+			err := stopAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
+			err = startAllMetaNode()
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println("restart all metanode")
 		}
-
 	},
 }
 
@@ -55,14 +101,26 @@ var restartDatanodeCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flags().Changed("ip") {
-			fmt.Println("ip:", ip)
-			if !cmd.Flags().Changed("disk") {
-				fmt.Println("must have disk argument")
-				os.Exit(1)
+			err := stopDatanodeInSpecificNode(ip)
+			if err != nil {
+				log.Println(err)
 			}
-			fmt.Println("disk:", datanodeDisk)
+			err = startDatanodeInSpecificNode(ip)
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println("restart datanode in ", ip)
+
 		} else {
-			fmt.Println("restart all datanode services from config.yaml")
+			err := stopAllDataNode()
+			if err != nil {
+				log.Println(err)
+			}
+			err = startAllDataNode()
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println("restart all datanode")
 		}
 	},
 }
@@ -71,7 +129,7 @@ func init() {
 	RestartCmd.AddCommand(restartMasterCommand)
 	RestartCmd.AddCommand(restartMetanodeCommand)
 	RestartCmd.AddCommand(restartDatanodeCommand)
-	RestartCmd.Flags().BoolVarP(&allRestart, "all", "a", false, "stop all services")
+	RestartCmd.Flags().BoolVarP(&allRestart, "all", "a", false, "restart all services")
 	RestartCmd.PersistentFlags().StringVarP(&ip, "ip", "", "", "specify an IP address to start services")
 	restartDatanodeCommand.Flags().StringVarP(&datanodeDisk, "disk", "d", "", "specify the disk where datanode mount")
 

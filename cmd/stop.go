@@ -27,7 +27,7 @@ var StopCmd = &cobra.Command{
 				log.Println(err)
 			}
 			fmt.Println("stop all metanode services")
-			err = stopAllDatanode()
+			err = stopAllDataNode()
 			if err != nil {
 				log.Println(err)
 			}
@@ -51,7 +51,7 @@ var stopMasterCommand = &cobra.Command{
 			if err != nil {
 				log.Println(err)
 			}
-			fmt.Println("stop all master services")
+			log.Println("stop all master services")
 		}
 	},
 }
@@ -62,15 +62,17 @@ var stopMetanodeCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flags().Changed("ip") {
-			stopMetanodeInSpecificNode(ip)
-
-			fmt.Println("stop metanode in ", ip)
+			err := stopMetanodeInSpecificNode(ip)
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println("stop metanode in ", ip)
 		} else {
 			err := stopAllMetaNode()
 			if err != nil {
 				log.Println(err)
 			}
-			fmt.Println("stop all metanode services")
+			log.Println("stop all metanode services")
 		}
 	},
 }
@@ -90,7 +92,7 @@ var stopDatanodeCommand = &cobra.Command{
 			stopDatanodeInSpecificNode(ip)
 			fmt.Println("stop datanode in ", ip)
 		} else {
-			err := stopAllDatanode()
+			err := stopAllDataNode()
 			if err != nil {
 				log.Println(err)
 			}

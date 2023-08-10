@@ -163,7 +163,7 @@ func stopDatanodeInSpecificNode(node string) error {
 	return nil
 }
 
-func stopAllDatanode() error {
+func stopAllDataNode() error {
 	config, err := readConfig()
 	if err != nil {
 		log.Println(err)

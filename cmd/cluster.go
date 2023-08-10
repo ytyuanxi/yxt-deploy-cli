@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -44,7 +43,7 @@ var clearCommand = &cobra.Command{
 	Short: "Clear cluster files and information",
 	Long:  "Clear cluster files and information",
 	Run: func(cmd *cobra.Command, args []string) {
-
+		cleanContainerAndLogs()
 	},
 }
 
@@ -251,23 +250,29 @@ func initCluster() {
 	log.Println("*******Cluster environment initialization completed******")
 }
 
-func checkAndInstallFuse() {
-	//rpm -q fuse
-	cmd := exec.Command("rpm", "-q", "fuse")
-	err := cmd.Run()
-
+func cleanContainerAndLogs() {
+	config, err := readConfig()
 	if err != nil {
-		installCmd := exec.Command("/usr/bin/yum", "install", "-y", "fuse")
-		err := installCmd.Run()
-		if err != nil {
-			log.Println(installCmd)
-			log.Fatal("Failed to install fuse:", err)
-
-		}
-		log.Println("Fuse is installed")
-
-	} else {
-		log.Println("Fuse is already installed")
-
+		log.Fatal(err)
 	}
+	hosts := []string{}
+	hosts = append(hosts, config.DeployHostsList.Master.Hosts...)
+	hosts = append(hosts, config.DeployHostsList.MetaNode.Hosts...)
+	for i := 0; i < len(config.DeployHostsList.DataNode); i++ {
+		hosts = append(hosts, config.DeployHostsList.DataNode[i].Hosts)
+	}
+
+	newHosts := removeDuplicates(hosts)
+
+	// only remove container image
+	for _, node := range newHosts {
+		if node == "" {
+			continue
+		}
+		err := removeImageOnNode(RemoteUser, node, config.Global.ContainerImage)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
 }

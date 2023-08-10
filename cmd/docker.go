@@ -114,7 +114,6 @@ func checkContainerExistence(nodeUser, node, containerName string) (bool, error)
 	}
 	//fmt.Println(cmd)
 	return false, nil
-
 }
 
 // checkContainerExistence checks if a container with the given name exists on a specific node.
@@ -214,6 +213,17 @@ func pullImageOnNode(nodeUser, node, imageName string) error {
 		return fmt.Errorf("failed to pull mirror %s on node %s", imageName, node)
 	}
 
+	return nil
+}
+
+func removeImageOnNode(nodeUser, node, imageName string) error {
+	cmd := exec.Command("ssh", nodeUser+"@"+node, "docker rmi "+imageName)
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to remove mirror %s on node %s", imageName, node)
+	}
+	log.Printf("success to remove mirror %s on node %s \n", imageName, node)
 	return nil
 }
 
