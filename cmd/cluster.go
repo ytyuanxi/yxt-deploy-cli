@@ -47,10 +47,20 @@ var clearCommand = &cobra.Command{
 	},
 }
 
+var configCommand = &cobra.Command{
+	Use:   "config",
+	Short: "Loading configuration files into the cluster",
+	Long:  "Loading configuration files into the cluster",
+	Run: func(cmd *cobra.Command, args []string) {
+		convertToJosn()
+	},
+}
+
 func init() {
 	ClusterCmd.AddCommand(initCommand)
 	ClusterCmd.AddCommand(infoCommand)
 	ClusterCmd.AddCommand(clearCommand)
+	ClusterCmd.AddCommand(configCommand)
 }
 
 // Obtain the IP address of the current host

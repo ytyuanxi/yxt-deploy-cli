@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 )
 
 type Master struct {
@@ -39,6 +40,21 @@ func getMasterPeers(config *Config) string {
 
 	}
 	return peers
+}
+
+func readMaster(filename string) (*Master, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	master := &Master{}
+	err = json.Unmarshal(data, master)
+	if err != nil {
+		return nil, err
+	}
+
+	return master, nil
 }
 
 func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
@@ -76,35 +92,90 @@ func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
 }
 
 func startAllMaster() error {
+
 	config, err := readConfig()
 	if err != nil {
 		return err
 	}
-	for id, node := range config.DeployHostsList.Master.Hosts {
-		peers := getMasterPeers(config)
-		err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Master.Config.Listen, config.Master.Config.Prof, peers)
-		if err != nil {
-			return err
-		}
 
-		confFilePath := ConfDir + "/" + "master" + strconv.Itoa(id+1) + ".json"
-		err = transferDirectoryToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
-		if err != nil {
-			return err
-		}
-		err = checkAndDeleteContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
-		}
-		status, err := startMasterContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1), config.Global.DataDir)
-		if err != nil {
-			return err
-		}
-		log.Println(status)
+	files, err := ioutil.ReadDir(ConfDir)
+	if err != nil {
+		return err
 	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "master") && !file.IsDir() {
+			data, err := readMaster(ConfDir + "/" + file.Name())
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			confFilePath := ConfDir + "/" + file.Name()
+			var dataDir string
+			if config.Master.Config.DataDir == "" {
+				dataDir = config.Global.DataDir
+			} else {
+				dataDir = config.Master.Config.DataDir
+
+			}
+			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, data.IP)
+			if err != nil {
+				return err
+			}
+			err = checkAndDeleteContainerOnNode(RemoteUser, data.IP, data.Role+data.ID)
+			if err != nil {
+				return err
+			}
+			status, err := startMasterContainerOnNode(RemoteUser, data.IP, data.Role+data.ID, dataDir)
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+		}
+	}
+	//Detect successful deployment
 	log.Println("start all master services")
 	return nil
 }
+
+// func startAllMaster() error {
+
+// 	config, err := readConfig()
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	for id, node := range config.DeployHostsList.Master.Hosts {
+// 		// peers := getMasterPeers(config)
+// 		// err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Global.DataDir, config.Master.Config.Prof, peers)
+// 		// if err != nil {
+// 		// 	return err
+// 		// }
+
+// 		confFilePath := ConfDir + "/" + "master" + strconv.Itoa(id+1) + ".json"
+// 		if config.Master.Config.DataDir == "" {
+// 			err = transferDirectoryToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+// 		} else {
+// 			err = transferDirectoryToRemote(confFilePath, config.Master.Config.DataDir, RemoteUser, node)
+// 		}
+
+// 		//err = transferDirectoryToRemote(confFilePath, config.Master.Config.DataDir, RemoteUser, node)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		err = checkAndDeleteContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		status, err := startMasterContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1), config.Global.DataDir)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		log.Println(status)
+// 	}
+// 	log.Println("start all master services")
+// 	return nil
+// }
 
 func stopAllMaster() error {
 	config, err := readConfig()

@@ -28,6 +28,20 @@ type DataNode struct {
 	EnableSmuxConnPool bool     `json:"enableSmuxConnPool"`
 }
 
+func readDataNode(filename string) (*DataNode, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	dataNode := &DataNode{}
+	err = json.Unmarshal(data, dataNode)
+	if err != nil {
+		return nil, err
+	}
+	return dataNode, nil
+}
+
 func writeDataNode(listen, prof string, masterAddrs, disks []string) error {
 	// 将DataNode配置写入DataNode.json文件
 	datanode := DataNode{
@@ -70,25 +84,32 @@ func startAllDataNode() error {
 	if err != nil {
 		log.Println(err)
 	}
-	masterAddr, err := getMasterAddrAndPort()
-	if err != nil {
-		return err
+
+	var dataDir string
+	if config.Master.Config.DataDir == "" {
+		dataDir = config.Global.DataDir
+	} else {
+		dataDir = config.Master.Config.DataDir
 	}
+	// masterAddr, err := getMasterAddrAndPort()
+	// if err != nil {
+	// 	return err
+	// }
 	for id, node := range config.DeployHostsList.DataNode {
 
-		disksInfo := []string{}
+		//disksInfo := []string{}
 		diskMap := ""
 		for _, info := range node.Disk {
 			diskMap += " -v " + info.Path + ":/cfs" + info.Path
-			disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
+			//disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
 		}
 
-		err := writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, masterAddr, disksInfo)
-		if err != nil {
-			return err
-		}
+		// err := writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, masterAddr, disksInfo)
+		// if err != nil {
+		// 	return err
+		// }
 		confFilePath := ConfDir + "/" + "datanode.json"
-		err = transferConfigFileToRemote(confFilePath, config.Global.DataDir+"/"+ConfDir, RemoteUser, node.Hosts)
+		err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node.Hosts)
 		if err != nil {
 			return err
 		}
@@ -97,7 +118,7 @@ func startAllDataNode() error {
 		if err != nil {
 			return err
 		}
-		status, err := startDatanodeContainerOnNode(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1), config.Global.DataDir, diskMap)
+		status, err := startDatanodeContainerOnNode(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1), dataDir, diskMap)
 		if err != nil {
 			return err
 		}
@@ -112,10 +133,17 @@ func startDatanodeInSpecificNode(node string) error {
 	if err != nil {
 		return err
 	}
+
+	var dataDir string
+	if config.Master.Config.DataDir == "" {
+		dataDir = config.Global.DataDir
+	} else {
+		dataDir = config.Master.Config.DataDir
+	}
 	for id, n := range config.DeployHostsList.DataNode {
 		if n.Hosts == node {
 			confFilePath := ConfDir + "/" + "datanode.json"
-			err = transferDirectoryToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
 			if err != nil {
 				return err
 			}
@@ -129,7 +157,7 @@ func startDatanodeInSpecificNode(node string) error {
 				diskMap += " -v " + info.Path + ":/cfs" + info.Path
 
 			}
-			status, err := startDatanodeContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1), config.Global.DataDir, diskMap)
+			status, err := startDatanodeContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1), dataDir, diskMap)
 			if err != nil {
 				return err
 			}

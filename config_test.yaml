@@ -1,0 +1,46 @@
+global:
+  ssh_port: 22
+  container_image: docker.io/cubefs/cbfs-base:1.0-golang-1.17.13
+  data_dir: /data
+  bin_dir: /bin
+  ip: 192.168.128.128
+  variable:
+    target: 0.0.1
+
+master:
+  config:
+    - listen: 17010
+      prof: 170210
+    - listen: 17011
+      prof: 17021
+    - listen: 17012
+      prof: 17022
+
+
+metanode:
+  config:
+    - listen: 17210
+      prof: 17220
+    - listen: 17211
+      prof: 17221
+    - listen: 17212
+      prof: 17222
+    
+
+datanode:
+  config:
+    - listen: 17310
+      prof: 17320
+      disk:
+          - path: /data/disk0
+            size: 10737418240
+    - listen: 17311
+      prof: 17321
+      disk:
+          - path: /data/disk0
+            size: 10737418240
+    - listen: 17311
+      prof: 17321
+      disk:
+          - path: /data/disk0
+            size: 10737418240

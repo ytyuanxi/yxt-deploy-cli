@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -22,6 +23,20 @@ type MetaNode struct {
 	MetadataDir       string   `json:"metadataDir"`
 	RaftDir           string   `json:"raftDir"`
 	MasterAddr        []string `json:"masterAddr"`
+}
+
+func readMetaNode(filename string) (*MetaNode, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	metaNode := &MetaNode{}
+	err = json.Unmarshal(data, metaNode)
+	if err != nil {
+		return nil, err
+	}
+	return metaNode, nil
 }
 
 func writeMetaNode(listen, prof string, masterAddrs []string) error {
@@ -84,10 +99,18 @@ func startMetanodeInSpecificNode(node string) error {
 	if err != nil {
 		return err
 	}
+
+	var dataDir string
+	if config.Master.Config.DataDir == "" {
+		dataDir = config.Global.DataDir
+	} else {
+		dataDir = config.Master.Config.DataDir
+	}
 	for id, n := range config.DeployHostsList.MetaNode.Hosts {
 		if n == node {
 			confFilePath := ConfDir + "/" + "metanode.json"
-			err = transferDirectoryToRemote(confFilePath, config.Global.DataDir, RemoteUser, node)
+
+			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
 			if err != nil {
 				return err
 			}
@@ -96,7 +119,7 @@ func startMetanodeInSpecificNode(node string) error {
 			if err != nil {
 				return err
 			}
-			status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), config.Global.DataDir)
+			status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), dataDir)
 			if err != nil {
 				return err
 			}
@@ -120,39 +143,80 @@ func getMasterAddrAndPort() ([]string, error) {
 }
 
 func startAllMetaNode() error {
+
 	config, err := readConfig()
 	if err != nil {
 		return err
 	}
-	masterAddr, err := getMasterAddrAndPort()
+
+	//直接读取metanode.json
 	if err != nil {
-		return err
+		fmt.Printf("Error reading file %s: %s\n", "file.Name()", err)
+		return nil
+	}
+
+	confFilePath := ConfDir + "/" + "metanode.json"
+	var dataDir string
+	if config.Master.Config.DataDir == "" {
+		dataDir = config.Global.DataDir
+	} else {
+		dataDir = config.Master.Config.DataDir
 	}
 	for id, node := range config.DeployHostsList.MetaNode.Hosts {
-
-		err := writeMetaNode(config.MetaNode.Config.Listen, config.MetaNode.Config.Prof, masterAddr)
+		err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
 		if err != nil {
 			return err
 		}
-		confFilePath := ConfDir + "/" + "metanode.json"
-		err = transferDirectoryToRemote(confFilePath, config.Global.DataDir+"/"+ConfDir, RemoteUser, node)
-		if err != nil {
-			return err
-		}
-
 		err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
 		if err != nil {
 			return err
 		}
-		status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), config.Global.DataDir)
+		status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), dataDir)
 		if err != nil {
 			return err
 		}
 		log.Println(status)
 	}
+
+	//Detect successful deployment
 	log.Println("start all metanode services")
 	return nil
 }
+
+// func startAllMetaNode() error {
+// 	config, err := readConfig()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// masterAddr, err := getMasterAddrAndPort()
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+// 	for id, node := range config.DeployHostsList.MetaNode.Hosts {
+
+// 		// err := writeMetaNode(config.MetaNode.Config.Listen, config.MetaNode.Config.Prof, masterAddr)
+// 		// if err != nil {
+// 		// 	return err
+// 		// }
+// 		confFilePath := ConfDir + "/" + "metanode.json"
+// 		err = transferDirectoryToRemote(confFilePath, config.Global.DataDir+"/"+ConfDir, RemoteUser, node)
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), config.Global.DataDir)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		log.Println(status)
+// 	}
+// 	log.Println("start all metanode services")
+// 	return nil
+// }
 
 func stopAllMetaNode() error {
 	config, err := readConfig()

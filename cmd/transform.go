@@ -14,7 +14,7 @@ func transferConfigFileToRemote(localFilePath string, remoteFilePath string, rem
 		return fmt.Errorf("failed to open local file: %s", err)
 	}
 	defer localFile.Close()
-	//递归的传输整个目录
+
 	cmd := exec.Command("scp", localFilePath, remoteUser+"@"+remoteHost+":"+remoteFilePath)
 	//output, err := cmd.Output()
 	// cmd.Stdout = os.Stdout
