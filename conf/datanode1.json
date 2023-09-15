@@ -4,6 +4,7 @@
   "prof": "17320",
   "raftHeartbeat": "17330",
   "raftReplica": "17340",
+  "localIP":"192.168.128.128",
   "raftDir": "/cfs/log",
   "consulAddr": "http://192.168.0.101:8500",
   "exporterPort": 9500,
@@ -18,7 +19,9 @@
   "diskFlowReadLimit": "1024000000",
   "diskFlowWriteLimit": "524288000",
   "masterAddr": [
-    "192.168.128.128:17010"
+    "192.168.128.128:17010",
+    "192.168.128.128:17011",
+    "192.168.128.128:17012"
   ],
   "enableSmuxConnPool": true
 }

@@ -2,6 +2,7 @@
   "role": "metanode",
   "listen": "17210",
   "prof": "17220",
+  "localIP":"192.168.128.128",
   "raftHeartbeatPort": "17230",
   "raftReplicaPort": "17240",
   "consulAddr": "http://192.168.0.101:8500",
@@ -13,6 +14,8 @@
   "metadataDir": "/cfs/data/meta",
   "raftDir": "/cfs/data/raft",
   "masterAddr": [
-    "192.168.128.128:17010"
+    "192.168.128.128:17010",
+    "192.168.128.128:17011",
+    "192.168.128.128:17012"
   ]
 }

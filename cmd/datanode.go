@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 )
 
 type DataNode struct {
@@ -14,6 +16,7 @@ type DataNode struct {
 	RaftHeartbeat      string   `json:"raftHeartbeat"`
 	RaftReplica        string   `json:"raftReplica"`
 	RaftDir            string   `json:"raftDir"`
+	LocalIP            string   `json:"localIP"`
 	ConsulAddr         string   `json:"consulAddr"`
 	ExporterPort       int      `json:"exporterPort"`
 	Cell               string   `json:"cell"`
@@ -42,12 +45,13 @@ func readDataNode(filename string) (*DataNode, error) {
 	return dataNode, nil
 }
 
-func writeDataNode(listen, prof string, masterAddrs, disks []string) error {
+func writeDataNode(listen, prof, localIP string, masterAddrs, disks []string) error {
 	// 将DataNode配置写入DataNode.json文件
 	datanode := DataNode{
 		Role:               "datanode",
 		Listen:             listen,
 		Prof:               prof,
+		LocalIP:            localIP,
 		RaftHeartbeat:      "17330",
 		RaftReplica:        "17340",
 		RaftDir:            "/cfs/log",
@@ -84,46 +88,87 @@ func startAllDataNode() error {
 	if err != nil {
 		log.Println(err)
 	}
-
+	disksInfo := []string{}
+	for _, node := range config.DeployHostsList.DataNode {
+		diskMap := ""
+		for _, info := range node.Disk {
+			diskMap += " -v " + info.Path + ":/cfs" + info.Path
+			//disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
+		}
+		disksInfo = append(disksInfo, diskMap)
+	}
+	files, err := ioutil.ReadDir(ConfDir)
+	if err != nil {
+		return err
+	}
 	var dataDir string
 	if config.Master.Config.DataDir == "" {
 		dataDir = config.Global.DataDir
 	} else {
 		dataDir = config.Master.Config.DataDir
 	}
+	index := 0
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "datanode") && !file.IsDir() {
+			data, err := readDataNode(ConfDir + "/" + file.Name())
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			confFilePath := ConfDir + "/" + file.Name()
+			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, data.LocalIP)
+			if err != nil {
+				return err
+			}
+
+			err = checkAndDeleteContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0])
+			if err != nil {
+				return err
+			}
+			status, err := startDatanodeContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0], dataDir, disksInfo[index])
+			if err != nil {
+				return err
+			}
+			index++
+			log.Println(status)
+		}
+
+	}
+
 	// masterAddr, err := getMasterAddrAndPort()
 	// if err != nil {
 	// 	return err
 	// }
-	for id, node := range config.DeployHostsList.DataNode {
+	// for id, node := range config.DeployHostsList.DataNode {
 
-		//disksInfo := []string{}
-		diskMap := ""
-		for _, info := range node.Disk {
-			diskMap += " -v " + info.Path + ":/cfs" + info.Path
-			//disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
-		}
+	// 	disksInfo := []string{}
+	// 	diskMap := ""
+	// 	for _, info := range node.Disk {
+	// 		diskMap += " -v " + info.Path + ":/cfs" + info.Path
+	// 		//disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
+	// 	}
+	// 	disksInfo = append(disksInfo, diskMap)
 
-		// err := writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, masterAddr, disksInfo)
-		// if err != nil {
-		// 	return err
-		// }
-		confFilePath := ConfDir + "/" + "datanode.json"
-		err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node.Hosts)
-		if err != nil {
-			return err
-		}
+	// 	// err := writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, masterAddr, disksInfo)
+	// 	// if err != nil {
+	// 	// 	return err
+	// 	// }
+	// 	confFilePath := ConfDir + "/" + "datanode.json"
+	// 	err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node.Hosts)
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-		err = checkAndDeleteContainerOnNode(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1))
-		if err != nil {
-			return err
-		}
-		status, err := startDatanodeContainerOnNode(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1), dataDir, diskMap)
-		if err != nil {
-			return err
-		}
-		log.Println(status)
-	}
+	// 	err = checkAndDeleteContainerOnNode(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	status, err := startDatanodeContainerOnNode(RemoteUser, node.Hosts, "datanode"+strconv.Itoa(id+1), dataDir, diskMap)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	log.Println(status)
+	// }
 	log.Println("start all datanode services")
 	return nil
 }

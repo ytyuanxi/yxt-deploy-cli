@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 )
 
 type MetaNode struct {
@@ -14,6 +15,7 @@ type MetaNode struct {
 	Prof              string   `json:"prof"`
 	RaftHeartbeatPort string   `json:"raftHeartbeatPort"`
 	RaftReplicaPort   string   `json:"raftReplicaPort"`
+	LocalIP           string   `json:"localIP"`
 	ConsulAddr        string   `json:"consulAddr"`
 	ExporterPort      int      `json:"exporterPort"`
 	LogLevel          string   `json:"logLevel"`
@@ -149,34 +151,64 @@ func startAllMetaNode() error {
 		return err
 	}
 
-	//直接读取metanode.json
+	files, err := ioutil.ReadDir(ConfDir)
 	if err != nil {
-		fmt.Printf("Error reading file %s: %s\n", "file.Name()", err)
-		return nil
+		return err
 	}
 
-	confFilePath := ConfDir + "/" + "metanode.json"
-	var dataDir string
-	if config.Master.Config.DataDir == "" {
-		dataDir = config.Global.DataDir
-	} else {
-		dataDir = config.Master.Config.DataDir
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "metanode") && !file.IsDir() {
+			data, err := readMetaNode(ConfDir + "/" + file.Name())
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			confFilePath := ConfDir + "/" + file.Name()
+			var dataDir string
+			if config.Master.Config.DataDir == "" {
+				dataDir = config.Global.DataDir
+			} else {
+				dataDir = config.Master.Config.DataDir
+
+			}
+			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, data.LocalIP)
+			if err != nil {
+				return err
+			}
+			err = checkAndDeleteContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0])
+			if err != nil {
+				return err
+			}
+			status, err := startMetanodeContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0], dataDir)
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+		}
 	}
-	for id, node := range config.DeployHostsList.MetaNode.Hosts {
-		err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
-		if err != nil {
-			return err
-		}
-		err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
-		}
-		status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), dataDir)
-		if err != nil {
-			return err
-		}
-		log.Println(status)
-	}
+
+	// confFilePath := ConfDir + "/" + "metanode.json"
+	// var dataDir string
+	// if config.Master.Config.DataDir == "" {
+	// 	dataDir = config.Global.DataDir
+	// } else {
+	// 	dataDir = config.Master.Config.DataDir
+	// }
+	// for id, node := range config.DeployHostsList.MetaNode.Hosts {
+	// 	err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), dataDir)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	log.Println(status)
+	// }
 
 	//Detect successful deployment
 	log.Println("start all metanode services")

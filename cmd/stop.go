@@ -38,6 +38,17 @@ var StopCmd = &cobra.Command{
 		}
 	},
 }
+var stopFromDockerCompose = &cobra.Command{
+	Use:   "test",
+	Short: "start test for on node",
+	Long:  "",
+	Run: func(cmd *cobra.Command, args []string) {
+		err := stopALLFromDockerCompose()
+		if err != nil {
+			log.Println(err)
+		}
+	},
+}
 
 var stopMasterCommand = &cobra.Command{
 	Use:   "master",
@@ -105,6 +116,7 @@ func init() {
 	StopCmd.AddCommand(stopMasterCommand)
 	StopCmd.AddCommand(stopMetanodeCommand)
 	StopCmd.AddCommand(stopDatanodeCommand)
+	StopCmd.AddCommand(stopFromDockerCompose)
 	StopCmd.Flags().BoolVarP(&allStop, "all", "a", false, "stop all services")
 	StopCmd.PersistentFlags().StringVarP(&ip, "ip", "", "", "specify an IP address to start services")
 	stopDatanodeCommand.Flags().StringVarP(&datanodeDisk, "disk", "d", "", "specify the disk where datanode mount")

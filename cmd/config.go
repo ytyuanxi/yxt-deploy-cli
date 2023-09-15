@@ -153,7 +153,7 @@ func convertToJosn() error {
 
 	for id, node := range config.DeployHostsList.Master.Hosts {
 		peers := getMasterPeers(config)
-		err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Master.Config.Listen, config.Master.Config.Prof, peers)
+		err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Master.Config.Listen, config.Master.Config.Prof, peers, "", "")
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func convertToJosn() error {
 			disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
 		}
 	}
-	err = writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, masterAddr, disksInfo)
+	err = writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, "", masterAddr, disksInfo)
 	if err != nil {
 		return err
 	}

@@ -37,3 +37,11 @@ deplopy_hosts_list:
       disk:
         - path: /data/disk0
           size: 10737418240
+    - hosts: 192.168.128.128
+      disk:
+        - path: /data/disk0
+          size: 10737418240
+    - hosts: 192.168.128.128
+      disk:
+        - path: /data/disk0
+          size: 10737418240

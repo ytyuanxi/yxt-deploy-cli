@@ -10,6 +10,7 @@ import (
 var ip string
 var allStart bool
 var datanodeDisk string
+var disk string
 
 var StartCmd = &cobra.Command{
 	Use:   "start",
@@ -46,6 +47,29 @@ var startMasterCommand = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		err := startAllMaster()
+		if err != nil {
+			log.Println(err)
+		}
+	},
+}
+
+// func startALLFromDockerCompose() error {
+// 	scriptPath := "run_docker.sh"
+// 	args := []string{"-r", "-d", "/data/disk"}
+
+// 	err := runScript(scriptPath, args...)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	return nil
+// }
+
+var startFromDockerCompose = &cobra.Command{
+	Use:   "test",
+	Short: "start test for on node",
+	Long:  "",
+	Run: func(cmd *cobra.Command, args []string) {
+		err := startALLFromDockerCompose(disk)
 		if err != nil {
 			log.Println(err)
 		}
@@ -98,6 +122,9 @@ func init() {
 	StartCmd.AddCommand(startMasterCommand)
 	StartCmd.AddCommand(startMetanodeCommand)
 	StartCmd.AddCommand(startDatanodeCommand)
+	StartCmd.AddCommand(startFromDockerCompose)
+	startFromDockerCompose.PersistentFlags().StringVarP(&disk, "disk", "d", "", "disk option description")
+	startFromDockerCompose.MarkPersistentFlagRequired("disk")
 	StartCmd.Flags().BoolVarP(&allStart, "all", "a", false, "start all services")
 	StartCmd.PersistentFlags().StringVarP(&ip, "ip", "", "", "specify an IP address to start services")
 	startDatanodeCommand.Flags().StringVarP(&datanodeDisk, "disk", "d", "", "specify the disk where datanode mount")

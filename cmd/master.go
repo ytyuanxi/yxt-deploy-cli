@@ -16,6 +16,8 @@ type Master struct {
 	IP                  string `json:"ip"`
 	Listen              string `json:"listen"`
 	Prof                string `json:"prof"`
+	HeartbeatPort       string `json:"heartbeatPort"`
+	ReplicaPort         string `json:"replicaPort"`
 	Peers               string `json:"peers"`
 	RetainLogs          string `json:"retainLogs"`
 	ConsulAddr          string `json:"consulAddr"`
@@ -57,7 +59,7 @@ func readMaster(filename string) (*Master, error) {
 	return master, nil
 }
 
-func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
+func writeMaster(clusterName, id, ip, listen, prof, peers, heartbeatPort, replicaPort string) error {
 	master := Master{
 		ClusterName:         clusterName,
 		ID:                  id,
@@ -65,6 +67,8 @@ func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
 		IP:                  ip,
 		Listen:              listen,
 		Prof:                prof,
+		HeartbeatPort:       heartbeatPort,
+		ReplicaPort:         replicaPort,
 		Peers:               peers,
 		RetainLogs:          "20000",
 		ConsulAddr:          "http://192.168.0.101:8500",
