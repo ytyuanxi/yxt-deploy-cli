@@ -4,14 +4,16 @@
   "prof": "17320",
   "raftHeartbeat": "17330",
   "raftReplica": "17340",
-  "localIP":"192.168.128.128",
   "raftDir": "/cfs/log",
+  "localIP": "10.1.0.44",
   "consulAddr": "http://192.168.0.101:8500",
   "exporterPort": 9500,
   "cell": "cell-01",
   "logDir": "/cfs/log",
   "logLevel": "debug",
   "disks": [
+    "/cfs/data/disk0:10737418240",
+    "/cfs/data/disk0:10737418240",
     "/cfs/data/disk0:10737418240"
   ],
   "diskIopsReadLimit": "20000",
@@ -19,9 +21,9 @@
   "diskFlowReadLimit": "1024000000",
   "diskFlowWriteLimit": "524288000",
   "masterAddr": [
-    "192.168.128.128:17010",
-    "192.168.128.128:17011",
-    "192.168.128.128:17012"
+    "10.1.0.44:17010",
+    "10.1.0.45:17010",
+    "10.1.0.46:17010"
   ],
   "enableSmuxConnPool": true
 }

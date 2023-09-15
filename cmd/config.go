@@ -86,65 +86,6 @@ func readConfig() (*Config, error) {
 
 }
 
-func readConfigTest() (*Config, error) {
-	data, err := ioutil.ReadFile("config_test.yaml")
-	if err != nil {
-		log.Println("Unable to read configuration file:", err)
-		return nil, err
-	}
-
-	config := &Config{}
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		log.Println("Unable to parse configuration file:", err)
-		return nil, err
-	}
-	return config, nil
-}
-
-type ConfigTest struct {
-	Global   GlobalConfigTest   `yaml:"global"`
-	Master   MasterConfigTest   `yaml:"master"`
-	Metanode MetanodeConfigTest `yaml:"metanode"`
-	Datanode DatanodeConfigTest `yaml:"datanode"`
-}
-
-type GlobalConfigTest struct {
-	SSHPort        int    `yaml:"ssh_port"`
-	ContainerImage string `yaml:"container_image"`
-	DataDir        string `yaml:"data_dir"`
-	BinDir         string `yaml:"bin_dir"`
-	IP             string `yaml:"ip"`
-	Variable       struct {
-		Target string `yaml:"target"`
-	} `yaml:"variable"`
-}
-
-type MasterConfigTest struct {
-	Config []struct {
-		Listen int `yaml:"listen"`
-		Prof   int `yaml:"prof"`
-	} `yaml:"config"`
-}
-
-type MetanodeConfigTest struct {
-	Config []struct {
-		Listen int `yaml:"listen"`
-		Prof   int `yaml:"prof"`
-	} `yaml:"config"`
-}
-
-type DatanodeConfigTest struct {
-	Config []struct {
-		Listen int `yaml:"listen"`
-		Prof   int `yaml:"prof"`
-		Disk   []struct {
-			Path string `yaml:"path"`
-			Size int64  `yaml:"size"`
-		} `yaml:"disk"`
-	} `yaml:"config"`
-}
-
 func convertToJosn() error {
 	config, err := readConfig()
 	if err != nil {
@@ -153,7 +94,7 @@ func convertToJosn() error {
 
 	for id, node := range config.DeployHostsList.Master.Hosts {
 		peers := getMasterPeers(config)
-		err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Master.Config.Listen, config.Master.Config.Prof, peers, "", "")
+		err := writeMaster(ClusterName, strconv.Itoa(id+1), node, config.Master.Config.Listen, config.Master.Config.Prof, peers)
 		if err != nil {
 			return err
 		}
@@ -163,10 +104,11 @@ func convertToJosn() error {
 	if err != nil {
 		return err
 	}
-
-	err = writeMetaNode(config.MetaNode.Config.Listen, config.MetaNode.Config.Prof, masterAddr)
-	if err != nil {
-		return err
+	for id, node := range config.DeployHostsList.MetaNode.Hosts {
+		err = writeMetaNode(config.MetaNode.Config.Listen, config.MetaNode.Config.Prof, strconv.Itoa(id+1), node, masterAddr)
+		if err != nil {
+			return err
+		}
 	}
 
 	disksInfo := []string{}
@@ -177,9 +119,12 @@ func convertToJosn() error {
 			disksInfo = append(disksInfo, "/cfs"+info.Path+":"+info.Size)
 		}
 	}
-	err = writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, "", masterAddr, disksInfo)
-	if err != nil {
-		return err
+
+	for id, node := range config.DeployHostsList.MetaNode.Hosts {
+		err = writeDataNode(config.DataNode.Config.Listen, config.DataNode.Config.Prof, strconv.Itoa(id+1), node, masterAddr, disksInfo)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

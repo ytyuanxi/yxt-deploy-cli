@@ -45,7 +45,7 @@ func readDataNode(filename string) (*DataNode, error) {
 	return dataNode, nil
 }
 
-func writeDataNode(listen, prof, localIP string, masterAddrs, disks []string) error {
+func writeDataNode(listen, prof, id, localIP string, masterAddrs, disks []string) error {
 	// 将DataNode配置写入DataNode.json文件
 	datanode := DataNode{
 		Role:               "datanode",
@@ -75,7 +75,7 @@ func writeDataNode(listen, prof, localIP string, masterAddrs, disks []string) er
 		return err
 	}
 
-	err = ioutil.WriteFile(ConfDir+"/datanode.json", dataNodeData, 0644)
+	err = ioutil.WriteFile(ConfDir+"/datanode"+id+".json", dataNodeData, 0644)
 	if err != nil {
 		log.Println("Unable to write to DataNode.json file:", err)
 		return err
@@ -97,10 +97,7 @@ func startAllDataNode() error {
 		}
 		disksInfo = append(disksInfo, diskMap)
 	}
-	files, err := ioutil.ReadDir(ConfDir)
-	if err != nil {
-		return err
-	}
+
 	var dataDir string
 	if config.Master.Config.DataDir == "" {
 		dataDir = config.Global.DataDir
@@ -108,6 +105,10 @@ func startAllDataNode() error {
 		dataDir = config.Master.Config.DataDir
 	}
 	index := 0
+	files, err := ioutil.ReadDir(ConfDir)
+	if err != nil {
+		return err
+	}
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), "datanode") && !file.IsDir() {
 			data, err := readDataNode(ConfDir + "/" + file.Name())
@@ -172,6 +173,7 @@ func startAllDataNode() error {
 	log.Println("start all datanode services")
 	return nil
 }
+
 func startDatanodeInSpecificNode(node string) error {
 
 	config, err := readConfig()
@@ -187,7 +189,7 @@ func startDatanodeInSpecificNode(node string) error {
 	}
 	for id, n := range config.DeployHostsList.DataNode {
 		if n.Hosts == node {
-			confFilePath := ConfDir + "/" + "datanode.json"
+			confFilePath := ConfDir + "/" + "datanode" + strconv.Itoa(id+1) + ".json"
 			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
 			if err != nil {
 				return err
@@ -237,21 +239,50 @@ func stopDatanodeInSpecificNode(node string) error {
 }
 
 func stopAllDataNode() error {
-	config, err := readConfig()
+
+	files, err := ioutil.ReadDir(ConfDir)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
-	for id, node := range config.DeployHostsList.Master.Hosts {
-		status, err := stopContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "datanode") && !file.IsDir() {
+			data, err := readDataNode(ConfDir + "/" + file.Name())
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			status, err := stopContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0])
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+			status, err = rmContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0])
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+
 		}
-		log.Println(status)
-		status, err = rmContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
-		}
-		log.Println(status)
 	}
 	return nil
 }
+
+// func stopAllDataNode() error {
+// 	config, err := readConfig()
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+// 	for id, node := range config.DeployHostsList.Master.Hosts {
+// 		status, err := stopContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		log.Println(status)
+// 		status, err = rmContainerOnNode(RemoteUser, node, DataNodeName+strconv.Itoa(id+1))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		log.Println(status)
+// 	}
+// 	return nil
+// }

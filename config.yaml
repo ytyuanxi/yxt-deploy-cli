@@ -28,20 +28,25 @@ datanode:
 deplopy_hosts_list:
   master:
     hosts:
-      - 192.168.128.128
+      - 10.1.0.44
+      - 10.1.0.45
+      - 10.1.0.46
   metanode:
     hosts:
-      - 192.168.128.128
+      - 10.1.0.44
+      - 10.1.0.45
+      - 10.1.0.46
+
   datanode:
-    - hosts: 192.168.128.128
+    - hosts: 10.1.0.44
       disk:
         - path: /data/disk0
           size: 10737418240
-    - hosts: 192.168.128.128
+    - hosts: 10.1.0.45
       disk:
         - path: /data/disk0
           size: 10737418240
-    - hosts: 192.168.128.128
+    - hosts: 10.1.0.46
       disk:
         - path: /data/disk0
           size: 10737418240

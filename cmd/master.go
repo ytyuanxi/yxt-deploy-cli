@@ -59,7 +59,7 @@ func readMaster(filename string) (*Master, error) {
 	return master, nil
 }
 
-func writeMaster(clusterName, id, ip, listen, prof, peers, heartbeatPort, replicaPort string) error {
+func writeMaster(clusterName, id, ip, listen, prof, peers string) error {
 	master := Master{
 		ClusterName:         clusterName,
 		ID:                  id,
@@ -67,8 +67,8 @@ func writeMaster(clusterName, id, ip, listen, prof, peers, heartbeatPort, replic
 		IP:                  ip,
 		Listen:              listen,
 		Prof:                prof,
-		HeartbeatPort:       heartbeatPort,
-		ReplicaPort:         replicaPort,
+		HeartbeatPort:       "5901",
+		ReplicaPort:         "5902",
 		Peers:               peers,
 		RetainLogs:          "20000",
 		ConsulAddr:          "http://192.168.0.101:8500",
@@ -181,22 +181,52 @@ func startAllMaster() error {
 // 	return nil
 // }
 
+// func stopAllMaster() error {
+// 	config, err := readConfig()
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+// 	for id, node := range config.DeployHostsList.Master.Hosts {
+// 		status, err := stopContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		log.Println(status)
+// 		status, err = rmContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		log.Println(status)
+// 	}
+// 	return nil
+// }
+
 func stopAllMaster() error {
-	config, err := readConfig()
+
+	files, err := ioutil.ReadDir(ConfDir)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
-	for id, node := range config.DeployHostsList.Master.Hosts {
-		status, err := stopContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "master") && !file.IsDir() {
+			data, err := readMaster(ConfDir + "/" + file.Name())
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			status, err := stopContainerOnNode(RemoteUser, data.IP, data.Role+data.ID)
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+			status, err = rmContainerOnNode(RemoteUser, data.IP, data.Role+data.ID)
+			if err != nil {
+				return err
+			}
+			log.Println(status)
 		}
-		log.Println(status)
-		status, err = rmContainerOnNode(RemoteUser, node, MasterName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
-		}
-		log.Println(status)
+
 	}
 	return nil
 }

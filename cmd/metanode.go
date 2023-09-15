@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strconv"
 	"strings"
 )
 
@@ -41,13 +40,14 @@ func readMetaNode(filename string) (*MetaNode, error) {
 	return metaNode, nil
 }
 
-func writeMetaNode(listen, prof string, masterAddrs []string) error {
+func writeMetaNode(listen, prof, id, localIP string, masterAddrs []string) error {
 	metanode := MetaNode{
 		Role:              "metanode",
 		Listen:            listen,
 		Prof:              prof,
 		RaftHeartbeatPort: "17230",
 		RaftReplicaPort:   "17240",
+		LocalIP:           localIP,
 		ConsulAddr:        "http://192.168.0.101:8500",
 		ExporterPort:      9500,
 		LogLevel:          "debug",
@@ -63,7 +63,7 @@ func writeMetaNode(listen, prof string, masterAddrs []string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile("conf/metanode.json", metaNodeData, 0644)
+	err = ioutil.WriteFile("conf/metanode"+id+".json", metaNodeData, 0644)
 	if err != nil {
 		return err
 	}
@@ -72,65 +72,150 @@ func writeMetaNode(listen, prof string, masterAddrs []string) error {
 }
 
 func stopMetanodeInSpecificNode(node string) error {
-	config, err := readConfig()
+	//获取该ip对应的容器名
+
+	files, err := ioutil.ReadDir(ConfDir)
 	if err != nil {
 		return err
 	}
-	for id, n := range config.DeployHostsList.MetaNode.Hosts {
-		if node == n {
-			status, err := stopContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
-			if err != nil {
-				return err
-			}
-			log.Println(status)
-			status, err = rmContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
-			if err != nil {
-				return err
-			}
-			log.Println(status)
-		}
 
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "metanode") && !file.IsDir() {
+			data, err := readMetaNode(ConfDir + "/" + file.Name())
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			if data.LocalIP == node {
+				status, err := stopContainerOnNode(RemoteUser, node, strings.Split(file.Name(), ".")[0])
+				if err != nil {
+					return err
+				}
+				log.Println(status)
+				status, err = rmContainerOnNode(RemoteUser, node, strings.Split(file.Name(), ".")[0])
+				if err != nil {
+					return err
+				}
+				log.Println(status)
+			}
+		}
 	}
+
 	return nil
 
 }
+
+// func stopMetanodeInSpecificNode(node string) error {
+// 	//获取该ip对应的容器名
+// 	config, err := readConfig()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for id, n := range config.DeployHostsList.MetaNode.Hosts {
+// 		if node == n {
+// 			status, err := stopContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
+// 			if err != nil {
+// 				return err
+// 			}
+// 			log.Println(status)
+// 			status, err = rmContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
+// 			if err != nil {
+// 				return err
+// 			}
+// 			log.Println(status)
+// 		}
+
+// 	}
+// 	return nil
+
+// }
 
 func startMetanodeInSpecificNode(node string) error {
-	//要对执行ip启动的容器进行编号
+	//找到对应ip的配置文件
 	config, err := readConfig()
 	if err != nil {
 		return err
 	}
-
-	var dataDir string
-	if config.Master.Config.DataDir == "" {
-		dataDir = config.Global.DataDir
-	} else {
-		dataDir = config.Master.Config.DataDir
+	files, err := ioutil.ReadDir(ConfDir)
+	if err != nil {
+		return err
 	}
-	for id, n := range config.DeployHostsList.MetaNode.Hosts {
-		if n == node {
-			confFilePath := ConfDir + "/" + "metanode.json"
 
-			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "metanode") && !file.IsDir() {
+			data, err := readMetaNode(ConfDir + "/" + file.Name())
 			if err != nil {
-				return err
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			if data.LocalIP == node {
+				var dataDir string
+				if config.Master.Config.DataDir == "" {
+					dataDir = config.Global.DataDir
+				} else {
+					dataDir = config.Master.Config.DataDir
+
+				}
+				confFilePath := ConfDir + "/" + file.Name()
+				err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
+				if err != nil {
+					return err
+				}
+
+				err = checkAndDeleteContainerOnNode(RemoteUser, node, strings.Split(file.Name(), ".")[0])
+				if err != nil {
+					return err
+				}
+				status, err := startMetanodeContainerOnNode(RemoteUser, node, strings.Split(file.Name(), ".")[0], dataDir)
+				if err != nil {
+					return err
+				}
+				log.Println(status)
+				break
 			}
 
-			err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
-			if err != nil {
-				return err
-			}
-			status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), dataDir)
-			if err != nil {
-				return err
-			}
-			log.Println(status)
-			break
 		}
 	}
+
 	return nil
 }
+
+// func startMetanodeInSpecificNode(node string) error {
+// 	//要对执行ip启动的容器进行编号
+// 	config, err := readConfig()
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	var dataDir string
+// 	if config.Master.Config.DataDir == "" {
+// 		dataDir = config.Global.DataDir
+// 	} else {
+// 		dataDir = config.Master.Config.DataDir
+// 	}
+// 	for id, n := range config.DeployHostsList.MetaNode.Hosts {
+// 		if n == node {
+// 			confFilePath := ConfDir + "/" + "metanode.json"
+
+// 			err = transferConfigFileToRemote(confFilePath, dataDir+"/"+ConfDir, RemoteUser, node)
+// 			if err != nil {
+// 				return err
+// 			}
+
+// 			err = checkAndDeleteContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
+// 			if err != nil {
+// 				return err
+// 			}
+// 			status, err := startMetanodeContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1), dataDir)
+// 			if err != nil {
+// 				return err
+// 			}
+// 			log.Println(status)
+// 			break
+// 		}
+// 	}
+// 	return nil
+// }
 
 func getMasterAddrAndPort() ([]string, error) {
 	config, err := readConfig()
@@ -251,21 +336,30 @@ func startAllMetaNode() error {
 // }
 
 func stopAllMetaNode() error {
-	config, err := readConfig()
+
+	files, err := ioutil.ReadDir(ConfDir)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
-	for id, node := range config.DeployHostsList.Master.Hosts {
-		status, err := stopContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "metanode") && !file.IsDir() {
+			data, err := readMetaNode(ConfDir + "/" + file.Name())
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", file.Name(), err)
+				return nil
+			}
+			status, err := stopContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0])
+			if err != nil {
+				return err
+			}
+			log.Println(status)
+			status, err = rmContainerOnNode(RemoteUser, data.LocalIP, strings.Split(file.Name(), ".")[0])
+			if err != nil {
+				return err
+			}
+			log.Println(status)
 		}
-		log.Println(status)
-		status, err = rmContainerOnNode(RemoteUser, node, MetaNodeName+strconv.Itoa(id+1))
-		if err != nil {
-			return err
-		}
-		log.Println(status)
 	}
 	return nil
 }
